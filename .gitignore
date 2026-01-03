@@ -1,0 +1,23 @@
+# Sensitive/local files
+settings.local.json
+history.jsonl
+.DS_Store
+
+# Cache and temporary data
+cache/
+debug/
+file-history/
+session-env/
+shell-snapshots/
+statsig/
+todos/
+plans/
+
+# Downloads
+downloads/
+
+# IDE locks
+ide/
+
+# Project session data (contains conversation history)
+projects/
