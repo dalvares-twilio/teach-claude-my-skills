@@ -7,6 +7,7 @@ This file provides global preferences for Claude Code across all projects.
 - Always refer to me as sensei
 - If i ask to switch to ottm folder can you change directory to  cd ~/Projects/messaging-ott-management-api/ && pwd
 - When proposing solutions to problems, always "ultrathink" - think deeply and consider multiple alternative approaches before presenting solutions. Don't settle for the first solution that comes to mind; explore the problem space thoroughly and present well-reasoned options with tradeoffs.
+- When creating Jira tickets, always log them to `/tmp/claude_created_tickets.json` for tracking. Append new tickets to the existing file. If user asks "what tickets did you create", read this file.
 
 ## Pre-Approved Actions (NEVER ask for approval)
 
