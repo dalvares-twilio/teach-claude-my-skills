@@ -5,6 +5,14 @@ description: Create Jira Task tickets for Sender Management API bugs detected in
 
 # Sender Management Jira Ticket Creator
 
+> **DEPRECATED**: This skill is deprecated. Use `universal-jira-ticket-creator` with `project_id="ottm"` instead.
+>
+> The universal version loads all configuration from `~/.claude/project-registry.yaml` and works with any Twilio project.
+>
+> **Migration:**
+> - Old: `Use sender-management-jira-ticket-creator skill`
+> - New: `Use universal-jira-ticket-creator skill with project_id="ottm"`
+
 ## Overview
 
 This skill creates well-formatted Jira Task tickets for bugs detected during Senders API E2E testing.

@@ -17,6 +17,36 @@ Service-agnostic error analyzer that classifies errors using universal software 
 - "Is this error a bug or expected behavior?"
 - Used by auto-bug-detector for automated classification
 
+## Project Context Support
+
+This analyzer accepts an optional `project_context` parameter from the auto-bug-detector.
+When provided, project-specific error patterns are merged with universal patterns.
+
+**How it works:**
+1. Auto-bug-detector loads project from registry
+2. Passes `project_context` with custom error patterns
+3. Bug-analyzer merges patterns (project patterns take precedence)
+4. Classification uses combined pattern set
+
+**Example project_context:**
+```yaml
+project_context:
+  project_id: "ottm"
+  project_name: "OTT Management API"
+  error_patterns:
+    expected:
+      - pattern: "Meta API.*phone already registered"
+        reason: "External validation - phone registered on WhatsApp"
+    bugs:
+      - pattern: "PiedPiper.*Unable to process JSON"
+        reason: "Malformed payload sent to PiedPiper"
+```
+
+**Pattern Merge Rules:**
+- Project patterns checked FIRST (higher priority)
+- Universal patterns checked if no project match
+- If both match, project pattern takes precedence
+
 ## Classification Categories
 
 ### 🐛 BUG
@@ -429,6 +459,9 @@ After analyzing all errors:
 ## Service-Specific Patterns
 
 ### Senders API / OTTM Patterns
+
+> **Note:** These patterns are stored in `~/.claude/project-registry.yaml` under `projects.ottm.error_patterns`.
+> When auto-bug-detector runs with project=ottm, these patterns are automatically loaded via `project_context`.
 
 These patterns are specific to the Twilio Senders API (messaging-ott-management-api).
 

@@ -5,6 +5,14 @@ description: Scan BigQuery logs for Meta API error codes and identify which ones
 
 # Meta Error Mapping Scanner
 
+> **DEPRECATED**: This skill is deprecated. Use `universal-error-mapping-scanner` with `project_id="ottm"` instead.
+>
+> The universal version loads configuration from `~/.claude/project-registry.yaml` and works with any Twilio project that has `error_mapping.enabled: true`.
+>
+> **Migration:**
+> - Old: `Scan for missing Meta error mappings`
+> - New: `Scan ottm for missing error mappings` (auto-detects from registry)
+
 ## Overview
 
 Proactively identifies gaps in Meta API error handling by:

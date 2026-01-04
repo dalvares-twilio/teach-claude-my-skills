@@ -1,0 +1,208 @@
+# Project Registry - Universal Bug Detection for Twilio Projects
+# This file contains configuration for all Twilio projects that can be scanned for bugs.
+# Use the project-onboarding-wizard skill to add new projects interactively.
+
+version: "1.0"
+
+projects:
+  # ============================================================================
+  # OTTM - OTT Management API (Senders API)
+  # ============================================================================
+  ottm:
+    name: "OTT Management API"
+    acronym: "OTTM"
+    team: "Sender Management"
+    repository: "~/Projects/messaging-ott-management-api"
+
+    # BigQuery Configuration
+    bigquery:
+      project: "qtco-messaging-channels"
+      datasets:
+        dev: "dev"
+        stage: "stage"
+        prod: "prod"
+      tables:
+        access_logs: "app_messaging_ott_management_api_mgmt_access"
+        app_logs: "app_messaging_ott_management_api_mgmt_stdout"
+      # Patterns to auto-detect this project from table name or user request
+      table_patterns:
+        - "messaging_ott_management"
+        - "ottm"
+        - "senders"
+        - "sender"
+      # Column mappings for BigQuery queries
+      columns:
+        timestamp: "timestamp"
+        error: "error"
+        level: "level"
+        request_id: "request_id"
+        account_id: "account_sid"
+        resource_id: "sender_sid"
+        partition: "PARTITIONDATE"
+        endpoint: "endpoint"
+        workflow: "workflow"
+        channel: "channel"
+
+    # Jira Configuration
+    jira:
+      project_key: "MSGADVCHNL"
+      team_field: "Sender Management"
+      issue_type: "Task"
+      default_epic: null  # Ask user each time
+
+    # API Configuration (for E2E testing)
+    api:
+      base_urls:
+        dev: "https://messaging.dev.twilio.com/v2/Channels/Senders"
+        stage: "https://messaging.stage.twilio.com/v2/Channels/Senders"
+        prod: "https://messaging.twilio.com/v2/Channels/Senders"
+      auth_type: "basic"  # Uses TWILIO_ACCOUNT_SID:TWILIO_AUTH_TOKEN
+      request_id_header: "X-Twilio-Request-Id"
+
+    # Custom Error Patterns (supplement universal patterns in bug-analyzer)
+    error_patterns:
+      # Errors that are EXPECTED behavior (not bugs)
+      expected:
+        - pattern: "Meta API.*phone already registered"
+          reason: "External validation - phone already registered on WhatsApp"
+        - pattern: "OAuthException.*code.*136024"
+          reason: "Meta API phone number validation failure"
+        - pattern: "Resource already exists"
+          reason: "Duplicate sender registration (idempotency working correctly)"
+        - pattern: "Request code error"
+          reason: "Meta API OTP request failure (phone already claimed)"
+        - pattern: "phone number is already registered"
+          reason: "Meta API duplicate phone validation"
+        - pattern: "WABA.*not found"
+          reason: "Invalid WABA ID provided by user"
+        - pattern: "rate limit"
+          reason: "External API rate limiting (Meta)"
+      # Errors that indicate BUGS in our code
+      bugs:
+        - pattern: "PiedPiper.*Unable to process JSON"
+          reason: "Malformed payload sent to PiedPiper observability service"
+        - pattern: "Failed to publish debug event"
+          reason: "Event serialization error in debug pipeline"
+        - pattern: "Unable to process JSON.*is invalid"
+          reason: "JSON validation failure in internal service"
+        - pattern: "Storehouse.*not found.*should exist"
+          reason: "Data integrity issue - expected data missing"
+        - pattern: "internal server error"
+          reason: "Unhandled exception in service"
+
+    # Error Mapping Scanner Configuration
+    # For services that map external API errors to internal responses
+    error_mapping:
+      enabled: true
+      external_api: "Meta Graph API"
+      # Patterns to identify external API errors in logs
+      error_patterns:
+        - "OAuthException"
+        - "GraphMethodException"
+        - "Meta Graph API"
+        - "FacebookGraphApi"
+      # Files containing error code mappings
+      handler_files:
+        - "internal/management/workflow/activity_error_handler.go"
+        - "internal/management/processor/parser.go"
+      # Variable name in code that holds the mapping
+      mapping_variable: "metaErrorMapping"
+      # Response type prefix for suggested mappings
+      response_type_prefix: "Twilio"
+
+  # ============================================================================
+  # k8s-orch - WhatsApp K8s Orchestrator
+  # ============================================================================
+  k8s-orch:
+    name: "whatsapp-k8s-orch"
+    acronym: "k8s-orch"
+    team: "Sender Management"
+    repository: "~/Projects/whatsapp-k8s-orch"
+
+    # BigQuery Configuration
+    bigquery:
+      project: "qtco-messaging-channels"
+      datasets:
+        dev: "dev"
+        stage: "stage"
+        prod: "prod"
+      tables:
+        access_logs: "app_messaging_whatsapp_k8s_orch_messaging_whatsapp_k8s_orch_access"
+        app_logs: "app_messaging_whatsapp_k8s_orch_messaging_whatsapp_k8s_orch_stdout"
+      # Patterns to auto-detect this project from table name or user request
+      table_patterns:
+        - "whatsapp_k8s_orch"
+        - "k8s-orch"
+        - "k8s_orch"
+      # Column mappings for BigQuery queries
+      columns:
+        timestamp: "timestamp"
+        error: "message"
+        exception: "exception"
+        exception_message: "exceptionMessage"
+        level: "level"
+        request_id: "correlationId"
+        resource_id: "sid"
+        partition: "PARTITIONDATE"
+        logger: "logger"
+        pod_name: "pod_name"
+
+    # Jira Configuration
+    jira:
+      project_key: "MSGADVCHNL"
+      team_field: "Sender Management"
+      issue_type: "Task"
+      default_epic: null
+
+    # Custom Error Patterns
+    error_patterns:
+      expected: []
+      bugs: []
+
+    # Error Mapping Scanner Configuration
+    error_mapping:
+      enabled: false
+
+  # ============================================================================
+  # TEMPLATE - Copy this for new projects
+  # ============================================================================
+  # project_id:
+  #   name: "Human Readable Name"
+  #   acronym: "ABBREV"
+  #   team: "Team Name"
+  #   repository: "~/Projects/repo-name"
+  #
+  #   bigquery:
+  #     project: "gcp-project-id"
+  #     datasets:
+  #       dev: "dev"
+  #       stage: "stage"
+  #       prod: "prod"
+  #     tables:
+  #       app_logs: "service_app_logs"
+  #     table_patterns:
+  #       - "pattern1"
+  #       - "pattern2"
+  #     columns:
+  #       timestamp: "timestamp"
+  #       error: "error"
+  #       level: "level"
+  #       request_id: "request_id"
+  #       partition: "PARTITIONDATE"
+  #
+  #   jira:
+  #     project_key: "PROJKEY"
+  #     team_field: "Team Name"
+  #     issue_type: "Bug"
+  #     default_epic: null
+  #
+  #   error_patterns:
+  #     expected:
+  #       - pattern: "regex pattern"
+  #         reason: "Why this is expected"
+  #     bugs:
+  #       - pattern: "regex pattern"
+  #         reason: "Why this is a bug"
+  #
+  #   error_mapping:
+  #     enabled: false

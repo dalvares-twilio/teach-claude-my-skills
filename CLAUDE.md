@@ -99,3 +99,4 @@ When running Senders API E2E tests:
 - Display created ticket key and URL
 - Remind user to set "Team (migrated)" field to "Sender Management" manually (custom field not supported by jira-inator)
 - Always switch model on startup to Opus 4.5 or greater
+- Dont create feature branches with names starting with feature/jira-inator-ticket-transitions instead create branches like jira-inator-ticket-transitions
