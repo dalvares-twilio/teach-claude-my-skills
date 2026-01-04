@@ -56,47 +56,51 @@ Tell Claude:
 
 The wizard will ask for:
 
-| Field | Example | Description |
-|-------|---------|-------------|
-| Project ID | `taskrouter` | Lowercase identifier for commands |
-| Name | `TaskRouter` | Human-readable name |
-| Team | `Flex TaskRouter` | Owning team |
-| Repository | `~/Projects/taskrouter` | Local repo path (for code review) |
+| Field | Example (OTTM) | Description |
+|-------|----------------|-------------|
+| Project ID | `ottm` | Lowercase identifier for commands |
+| Name | `OTT Management API` | Human-readable name |
+| Acronym | `OTTM` | Short abbreviation |
+| Team | `Sender Management` | Owning team |
+| Repository | `~/Projects/messaging-ott-management-api` | Local repo path (for code review) |
 
 ### Step 3: Configure BigQuery
 
-| Field | Example | Description |
-|-------|---------|-------------|
-| GCP Project | `twilio-taskrouter` | BigQuery project ID |
+| Field | Example (OTTM) | Description |
+|-------|----------------|-------------|
+| GCP Project | `qtco-messaging-channels` | BigQuery project ID |
 | Datasets | `dev`, `stage`, `prod` | Environment datasets |
-| App Logs Table | `taskrouter_app_logs` | Main application logs table |
-| Access Logs Table | (optional) | HTTP access logs table |
+| App Logs Table | `app_messaging_ott_management_api_mgmt_stdout` | Main application logs table |
+| Access Logs Table | `app_messaging_ott_management_api_mgmt_access` | HTTP access logs table (optional) |
 
 The wizard can **auto-discover** the table schema to help with column mapping.
 
 ### Step 4: Map Columns
 
-| Standard Field | Your Column | Description |
-|----------------|-------------|-------------|
+| Standard Field | Example (OTTM) | Description |
+|----------------|----------------|-------------|
 | `timestamp` | `timestamp` | When the error occurred |
-| `error` | `error` or `message` | Error details |
-| `level` | `level` or `severity` | Log level (ERROR, WARN) |
+| `error` | `error` | Error details |
+| `level` | `level` | Log level (ERROR, WARN) |
 | `request_id` | `request_id` | Request correlation ID |
+| `account_id` | `account_sid` | Account identifier |
+| `resource_id` | `sender_sid` | Resource identifier |
 | `partition` | `PARTITIONDATE` | Table partition column |
 
 ### Step 5: Configure Jira
 
-| Field | Example | Description |
-|-------|---------|-------------|
-| Project Key | `TASKROUTER` | Jira project for tickets |
-| Team Field | `Flex TaskRouter` | Value for "Team (migrated)" |
-| Issue Type | `Bug` or `Task` | Default issue type |
+| Field | Example (OTTM) | Description |
+|-------|----------------|-------------|
+| Project Key | `MSGADVCHNL` | Jira project for tickets |
+| Team Field | `Sender Management` | Value for "Team (migrated)" |
+| Issue Type | `Task` | Default issue type |
+| Default Epic | (optional) | Parent epic for tickets |
 
 ### Step 6: Done!
 
 Your project is now in the registry. Scan it with:
 ```
-"Scan taskrouter for bugs from last 4 hours"
+"Scan ottm for bugs from last 4 hours"
 ```
 
 ---
