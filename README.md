@@ -2,6 +2,54 @@
 
 A Claude Code skill-based system for automated bug detection across Twilio projects. Scans BigQuery logs, classifies errors, and creates Jira tickets automatically.
 
+---
+
+## Prerequisites
+
+### Required
+
+| Requirement | Purpose | Setup |
+|-------------|---------|-------|
+| **Claude Code CLI** | Run the skills | [Install Claude Code](https://docs.anthropic.com/claude-code) |
+| **jira-inator plugin** | Create Jira tickets | `/install-plugin jira-inator@twilio` |
+| **Google Cloud SDK** | Query BigQuery logs | `brew install google-cloud-sdk` |
+| **BigQuery Access** | Read project logs | `gcloud auth login` |
+
+### Optional
+
+| Requirement | Purpose | Setup |
+|-------------|---------|-------|
+| **Local Repository** | Code review for root cause | Clone the project repo locally |
+| **superpowers plugin** | Enhanced agent capabilities | `/install-plugin superpowers@superpowers-marketplace` |
+
+### Verify Setup
+
+```bash
+# Check BigQuery access
+bq query --use_legacy_sql=false "SELECT 1"
+
+# Check jira-inator plugin
+claude "/plugins"  # Should show jira-inator@twilio
+```
+
+### Plugin Configuration
+
+The **jira-inator** plugin requires configuration in `~/.claude/plugins/cache/twilio/jira-inator/<version>/.env`:
+
+```env
+JIRA_EMAIL=your.email@twilio.com
+JIRA_API_TOKEN=your_jira_api_token
+DEFAULT_PROJECT=MSGADVCHNL
+TWILIO_JIRA_URL=https://twilio-engineering.atlassian.net
+```
+
+To get a Jira API token:
+1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
+2. Create a new API token
+3. Copy it to the `.env` file
+
+---
+
 ## Quick Start
 
 ### Scan a Project for Bugs
