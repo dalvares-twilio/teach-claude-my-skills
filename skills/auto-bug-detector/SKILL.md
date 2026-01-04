@@ -23,17 +23,21 @@ Complete automated bug detection pipeline that combines error scanning, classifi
    ↓ Finds UNIQUE error patterns
 2. Bug Classification (bug-analyzer)
    ↓ Categorizes: BUG / EXPECTED / IMPROVEMENT
-3. User Review
+3. Meta Error Mapping Check (meta-error-mapping-scanner) [OTTM only]
+   ↓ Identifies unmapped Meta error codes in codebase
+4. User Review
    ↓ User decides on actions
-4. Actions (optional)
+5. Actions (optional)
    ↓ Create tickets, log improvements, etc.
-5. Final Report
+6. Final Report
 ```
 
 ## Pre-Approved Actions
 
 - Invoking bigquery-error-scanner
 - Invoking bug-analyzer
+- Invoking meta-error-mapping-scanner (for OTTM/Senders API)
+- Reading codebase error handler files
 - Reading results from invoked skills
 - Displaying comprehensive reports
 - Asking user for action decisions
@@ -163,6 +167,69 @@ Results:
 - ✅ EXPECTED: {expected_count}
 - 💡 IMPROVEMENTS: {improvement_count}
 ```
+
+### Step 4.5: Meta Error Mapping Check (OTTM Only)
+
+**When to run this step**:
+- Only for OTTM/Senders API scans (table contains `messaging_ott_management_api`)
+- When errors contain Meta API patterns (`OAuthException`, `GraphMethodException`, `"code":`)
+
+**Trigger conditions** (any of these):
+1. Bug analyzer classified errors as "UNKNOWN" or low confidence
+2. Errors contain Meta error codes that returned generic Twilio responses
+3. User explicitly requests mapping check
+
+**If triggered, follow `meta-error-mapping-scanner` instructions**:
+
+1. **Extract Meta error codes** from discovered errors:
+   - Parse `"code":` and `"error_subcode":` from error messages
+   - Build list of unique code/subcode combinations
+
+2. **Read codebase error handlers**:
+   ```
+   Repository: ~/Projects/messaging-ott-management-api/
+   Files:
+   - internal/management/workflow/activity_error_handler.go
+   - internal/management/processor/parser.go
+   ```
+
+3. **Cross-reference** to find unmapped codes:
+   - Extract handled codes from `metaErrorMapping` in codebase
+   - Compare with codes found in errors
+   - Identify gaps
+
+4. **Display mapping check results**:
+```
+## Stage 3: Meta Error Mapping Check
+
+Checked: {N} Meta error codes from discovered errors
+Mapped in codebase: {mapped_count}
+**Unmapped (Gaps)**: {unmapped_count}
+
+{IF GAPS FOUND}
+### Unmapped Meta Error Codes
+
+| Code | Subcode | Occurrences | Context | Suggested Action |
+|------|---------|-------------|---------|------------------|
+| {code} | {subcode} | {count} | {endpoint} | Add to error handler |
+
+⚠️  These errors are returning generic responses to customers.
+Consider adding mappings in `activity_error_handler.go`.
+{END IF}
+
+{IF NO GAPS}
+✅ All Meta error codes are properly mapped in codebase.
+{END IF}
+```
+
+5. **Add to ticket creation options** (Step 6):
+   - If gaps found, offer to create tech debt ticket for mapping improvements
+   - Group with other improvement opportunities
+
+**Skip this step if**:
+- Not scanning OTTM logs
+- No Meta-related errors found
+- User opts out
 
 ### Step 5: Present Detailed Results
 
@@ -408,7 +475,64 @@ User: "MSGADVCHNL-11802"
 Report complete!
 ```
 
-### Session 2: Direct Table Scan
+### Session 2: OTTM Scan with Meta Error Mapping Check
+
+```
+User: "Scan OTTM prod logs for bugs from last 24 hours"
+
+Bot:
+## Stage 1: Error Discovery
+Scanned: qtco-messaging-channels.prod.app_messaging_ott_management_api_mgmt_stdout
+Found 25 errors, 5 NEW unique patterns
+
+## Stage 2: Bug Classification
+Perform code review? (Yes/No)
+User: "Yes"
+
+Analyzing with code review...
+- 🐛 BUGS: 1 (PiedPiper JSON validation failure)
+- ✅ EXPECTED: 2 (Meta API rejections)
+- ❓ UNKNOWN: 2 (Meta errors with generic responses)
+
+## Stage 3: Meta Error Mapping Check
+Detected 2 errors with potentially unmapped Meta codes.
+Checking codebase...
+
+Reading: internal/management/workflow/activity_error_handler.go
+Reading: internal/management/processor/parser.go
+
+Checked: 4 Meta error codes from discovered errors
+Mapped in codebase: 2
+**Unmapped (Gaps)**: 2
+
+### Unmapped Meta Error Codes
+
+| Code | Subcode | Occurrences | Context | Suggested Action |
+|------|---------|-------------|---------|------------------|
+| 138015 | 2593145 | 15 | update/async | Add to error handler |
+| 131031 | 0 | 3 | create/async | Add to error handler |
+
+⚠️  These errors are returning generic responses to customers.
+
+What would you like to do?
+1. Create ticket for bug (PiedPiper issue)
+2. Create ticket for unmapped error codes (tech debt)
+3. Create both tickets
+4. Just report
+
+User: "3"
+
+Epic for tickets?
+User: "MSGADVCHNL-12497"
+
+✅ Created tickets:
+- MSGADVCHNL-12641: PiedPiper JSON validation failure (Bug)
+- MSGADVCHNL-12642: Add Meta error mappings for unmapped codes (Tech Debt)
+
+Report complete!
+```
+
+### Session 3: Direct Table Scan (Non-OTTM)
 
 ```
 User: "Scan my-company.prod.errors for bugs from last 6 hours"
@@ -436,6 +560,8 @@ User: "No"
 Analyzing...
 - 🐛 BUGS: 2
 - 💡 IMPROVEMENTS: 1
+
+(Stage 3 skipped - not OTTM logs)
 
 [Results displayed]
 
@@ -505,8 +631,9 @@ Based on patterns:
 ## Integration Points
 
 **Invokes**:
-- `bigquery-error-scanner` - error discovery
-- `bug-analyzer` - classification
+- `bigquery-error-scanner` - error discovery (Stage 1)
+- `bug-analyzer` - classification (Stage 2)
+- `meta-error-mapping-scanner` - codebase gap analysis (Stage 3, OTTM only)
 - `sender-management-jira-ticket-creator` - ticketing (optional)
 - Generated monitoring skills - table-specific scanning
 
@@ -525,7 +652,9 @@ Based on patterns:
 ## Related Skills
 
 - **bigquery-skill-builder**: Creates skills for this orchestrator
-- **bigquery-error-scanner**: Stage 1 of pipeline
-- **bug-analyzer**: Stage 2 of pipeline
-- **sender-management-jira-ticket-creator**: Optional stage 4
+- **bigquery-error-scanner**: Stage 1 of pipeline (error discovery)
+- **bug-analyzer**: Stage 2 of pipeline (classification)
+- **meta-error-mapping-scanner**: Stage 3 of pipeline (codebase gap analysis, OTTM only)
+- **sender-management-jira-ticket-creator**: Stage 5 ticketing (optional)
 - **ottm-bigquery-debugging**: Deep-dive debugging (complementary)
+- **request-analyzer**: Analyze specific request IDs (complementary)
