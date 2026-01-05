@@ -1,0 +1,42 @@
+{
+  "purchased_numbers": [
+    {
+      "phone_number": "+17622268498",
+      "sid": "PNd85bd337f0b42195924a4d39f811e5e5",
+      "friendly_name": "(762) 226-8498",
+      "location": "Dalton, GA",
+      "capabilities": [
+        "SMS",
+        "MMS",
+        "Voice",
+        "Fax"
+      ],
+      "purchased_at": "2026-01-05T01:02:38Z"
+    },
+    {
+      "phone_number": "+12408662050",
+      "sid": "PN57d0c12c610287fce6f329baabf4a246",
+      "friendly_name": "(240) 866-2050",
+      "location": "Hagerstown, MD",
+      "capabilities": [
+        "SMS",
+        "MMS",
+        "Voice",
+        "Fax"
+      ],
+      "purchased_at": "2026-01-05T01:44:38Z"
+    },
+    {
+      "phone_number": "+15405546876",
+      "sid": "PN3394c4df64f2256c58a8e11723405f0d",
+      "friendly_name": "(540) 554-6876",
+      "location": "Bluemont, VA",
+      "capabilities": [
+        "SMS",
+        "MMS",
+        "Voice"
+      ],
+      "purchased_at": "2026-01-05T02:09:57Z"
+    }
+  ]
+}

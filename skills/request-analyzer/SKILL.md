@@ -1,6 +1,6 @@
 ---
 name: request-analyzer
-description: Analyze any OTTM Request ID for bugs and provide a comprehensive summary of request processing. Auto-creates Jira tickets for detected bugs.
+description: "Analyze a specific OTTM Request ID (RQ...). ONLY use when user provides an RQ ID like 'analyze RQ123...' or 'what happened in RQ...'. Requires a specific request ID."
 ---
 
 # Request Analyzer
@@ -11,12 +11,17 @@ Analyzes any OTTM (Senders API) Request ID to detect bugs and provide a detailed
 
 ## When to Use
 
-- "Analyze request RQ123..."
-- "What happened in request RQ123?"
-- "Check RQ123 for bugs"
-- "Debug request RQ..."
-- "Summarize request RQ..."
-- After running E2E tests to analyze specific failures
+**ONLY invoke when user provides a specific Request ID (RQ...):**
+- "Analyze request RQ123abc..."
+- "What happened in request RQ..."
+- "Check RQ... for bugs"
+
+**DO NOT invoke for:**
+- General "analyze requests" without a specific ID
+- "Find bugs" or "scan for errors" (use auto-bug-detector)
+- E2E testing (use senders-e2e-testing)
+
+**This skill REQUIRES a specific RQ ID to function.**
 
 ## Pre-Approved Permissions
 

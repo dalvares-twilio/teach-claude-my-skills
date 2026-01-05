@@ -13,6 +13,7 @@ This file provides global preferences for Claude Code across all projects.
 
 When working on any task, the following actions are **pre-approved** and do NOT require asking for permission:
 
+- **Reading from ~/.claude/**: ALL read operations (project-registry.yaml, skills, etc.)
 - **Reading from /tmp/**: ALL read operations (cat, grep, awk, head, tail, etc.)
 - **Writing to /tmp/**: ALL write operations (echo, cat >, tee, etc.)
 - **Python scripts in /tmp/**: Creating and executing Python scripts for data processing
@@ -100,3 +101,4 @@ When running Senders API E2E tests:
 - Remind user to set "Team (migrated)" field to "Sender Management" manually (custom field not supported by jira-inator)
 - Always switch model on startup to Opus 4.5 or greater
 - Dont create feature branches with names starting with feature/jira-inator-ticket-transitions instead create branches like jira-inator-ticket-transitions
+- If i ask you to switch to obsidian, change directory to cd /Users/dalvares/Documents/Obsidian Vault/

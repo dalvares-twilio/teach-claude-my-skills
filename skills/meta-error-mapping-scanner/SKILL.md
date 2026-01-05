@@ -1,6 +1,6 @@
 ---
 name: meta-error-mapping-scanner
-description: Scan BigQuery logs for Meta API error codes and identify which ones are NOT handled in the OTTM codebase. Proactively find error mapping gaps before they impact customers.
+description: "DEPRECATED - use universal-error-mapping-scanner instead. Only use if user explicitly says 'Meta error mapping' or 'Meta API error codes not handled'."
 ---
 
 # Meta Error Mapping Scanner
@@ -23,12 +23,14 @@ Proactively identifies gaps in Meta API error handling by:
 
 ## When to Use
 
-- "Scan for missing Meta error mappings"
-- "Find unhandled Meta error codes"
-- "Check for new Meta errors not mapped"
-- "Meta error mapping gap analysis"
-- "What Meta errors are we not handling?"
-- Run periodically (weekly/monthly) to catch new error patterns
+**ONLY invoke if user explicitly says:**
+- "Meta error mapping" or "Meta error mappings"
+- "Unhandled Meta error codes"
+- "Meta API error mapping gaps"
+
+**Otherwise use `universal-error-mapping-scanner` with project_id="ottm"**
+
+**DO NOT invoke for general bug scanning or error detection.**
 
 ## Pre-Approved Permissions
 

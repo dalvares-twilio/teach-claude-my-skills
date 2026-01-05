@@ -1,6 +1,6 @@
 ---
 name: ottm-bigquery-debugging
-description: Query OTTM BigQuery logs (access & application) across dev/stage/prod for debugging Senders API requests by request_id, account_sid, sender_sid, timestamps, errors, and endpoints
+description: "Query OTTM BigQuery logs by request_id (RQ...), account_sid (AC...), or sender_sid (XE...). ONLY use when user provides a specific ID to look up OR explicitly asks to 'query OTTM logs' or 'debug request'. NOT for general error scanning."
 ---
 
 # OTTM BigQuery Debugging
@@ -15,14 +15,30 @@ The OTTM service logs to two BigQuery tables in the `qtco-messaging-channels` pr
 
 Both tables share a `request_id` field that allows correlating HTTP requests with their application logs.
 
-## Usage
+## When to Use
 
-Use this skill when you need to:
-- Debug a specific Senders API request using its request_id
-- Find recent activity for an account or sender
-- Investigate errors or performance issues
-- Trace the complete lifecycle of a request
-- Understand what happened during a specific operation
+**ONLY invoke this skill when the user:**
+- Provides a specific request_id (RQ...) to look up
+- Provides an account_sid (AC...) or sender_sid (XE...) to query
+- Explicitly says "query OTTM logs" or "debug this request"
+- Asks to "trace" or "investigate" a specific Senders API call
+
+**DO NOT invoke for:**
+- General "scan for errors" requests (use auto-bug-detector)
+- E2E testing (use senders-e2e-testing)
+- Code review or codebase analysis
+- Requests without a specific ID or explicit OTTM log mention
+
+**Example triggers (YES):**
+- "Look up request RQ123abc456..."
+- "Query OTTM logs for account AC12345..."
+- "Debug this Senders API request: RQ..."
+- "What happened to sender XE789..."
+
+**Example non-triggers (NO):**
+- "Find bugs" (too vague)
+- "Scan for errors" (use auto-bug-detector)
+- "Test the API" (use senders-e2e-testing)
 
 ## Pre-Approved Permissions
 

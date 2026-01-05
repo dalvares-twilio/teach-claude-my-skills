@@ -22,16 +22,100 @@ Use this skill when you need to:
 - "Verify my Senders API changes in dev/stage/prod"
 - "Run regression tests and analyze any failures"
 
-## Credential Detection
+## Credential Handling Modes
 
-When user provides a curl command with credentials:
-1. Extract `TWILIO_ACCOUNT_SID` from `-u` parameter or environment variable
-2. Extract `TWILIO_AUTH_TOKEN` from `-u` parameter or environment variable
-3. Detect environment from URL hostname:
-   - `messaging.dev.twilio.com` → dev
-   - `messaging.stage.twilio.com` → stage
-   - `messaging.twilio.com` → prod
-4. Use payload from user's curl if provided
+### Mode 1: Pass-Through (User provides curl with credentials)
+
+If user provides a curl request with inline credentials:
+```bash
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+curl -v -X POST "https://messaging.dev.twilio.com/v2/Channels/Senders" \
+  -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" ...
+```
+
+**Behavior:**
+- Extract `TWILIO_ACCOUNT_SID` from `-u` parameter or environment variable
+- Extract `TWILIO_AUTH_TOKEN` from `-u` parameter or environment variable
+- Detect environment from URL hostname:
+  - `messaging.dev.twilio.com` → dev
+  - `messaging.stage.twilio.com` → stage
+  - `messaging.twilio.com` → prod
+- Extract WABA ID from payload if present (in `configuration.waba_id`)
+- **DO NOT save to file** - use credentials for this session only
+- Proceed directly to test execution
+
+**WABA ID Handling:**
+- WABA ID is **truly optional** - never prompt for it
+- If user provides WABA ID in curl payload → use it
+- If not provided → **omit `configuration` block entirely** from payload
+
+**Default Profile (use when user doesn't provide profile details):**
+```json
+{
+  "sender_id": "whatsapp:+1XXXXXXXXXX",
+  "profile": {
+    "name": "Twilio Test1",
+    "description": "Senders API UAT",
+    "logo_url": "https://www.logomaker.com/wp-content/uploads/2018/10/twitter.png",
+    "emails": [{ "email": "twilio@twilio.com" }],
+    "websites": [{ "website": "https://twilio.com" }]
+  }
+}
+```
+
+- Payload WITH WABA ID:
+  ```json
+  {
+    "sender_id": "whatsapp:+12408662050",
+    "configuration": { "waba_id": "1394386238892041" },
+    "profile": {
+      "name": "Twilio Test1",
+      "description": "Senders API UAT",
+      "logo_url": "https://www.logomaker.com/wp-content/uploads/2018/10/twitter.png",
+      "emails": [{ "email": "twilio@twilio.com" }],
+      "websites": [{ "website": "https://twilio.com" }]
+    }
+  }
+  ```
+
+### Mode 2: Saved Credentials (No curl provided)
+
+If user just says "run E2E tests" without providing credentials:
+1. Check for saved credentials in `/tmp/twilio_senders_test_credentials.json`
+2. If found: Display saved environments, offer to use or override
+3. If not found: Prompt for credentials, offer to save for future sessions
+
+**Saved Credentials File:** `/tmp/twilio_senders_test_credentials.json`
+```json
+{
+  "credentials": [
+    {
+      "account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "auth_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "environment": "dev",
+      "description": "Dev testing account"
+    },
+    {
+      "account_sid": "ACyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "auth_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "environment": "stage",
+      "description": "Stage testing account"
+    }
+  ]
+}
+```
+
+**Display Format:**
+```
+Saved test credentials:
+- dev:   AC...xxxx ✓
+- stage: AC...yyyy ✓
+- prod:  (not configured)
+
+Which environment? (dev/stage/prod)
+```
 
 Only use AskUserQuestion if credentials or environment cannot be detected.
 
@@ -66,6 +150,46 @@ Only prompt for:
 ## Instructions
 
 Follow this workflow step-by-step:
+
+### Step 0: Setup (Optional)
+
+This step handles credential and phone number setup when user doesn't provide a curl command.
+
+#### Step 0a: Test Credential Setup
+
+**If user provides curl with credentials (Mode 1):** Skip to Step 1.
+
+**If user doesn't provide curl (Mode 2):**
+1. Check `/tmp/twilio_senders_test_credentials.json` for saved credentials
+2. Display saved environments:
+   ```
+   Saved test credentials:
+   - dev:   AC...xxxx ✓
+   - stage: AC...yyyy ✓
+   - prod:  (not configured)
+
+   Which environment? (dev/stage/prod)
+   ```
+3. If environment exists: Use those credentials (offer override option)
+4. If environment NOT configured: Prompt for credentials, save to array
+
+#### Step 0b: Phone Number Setup (Optional)
+
+If user wants to use a specific phone number or purchase a new one:
+
+1. **Reference `twilio-phone-number-manager` skill**
+2. Check phone number registry at `/Users/dalvares/.claude/skills/twilio-phone-number-manager/phone-numbers.json`
+3. Display options:
+   ```
+   Phone Number Registry:
+   | #  | Phone Number     | Location      | Purchased    |
+   |----|------------------|---------------|--------------|
+   | 1  | +17622268498     | Dalton, GA    | 2026-01-05   |
+
+   Use existing number, purchase new, or skip?
+   ```
+4. If purchase new: Invoke `twilio-phone-number-manager` skill
+5. Return selected phone number for use in tests (e.g., `whatsapp:+17622268498`)
 
 ### Step 1: Setup
 
@@ -644,5 +768,6 @@ Status: ⚠️ TESTS COMPLETED WITH ERRORS (background async errors after 202)"
 
 ## Related Skills
 
-- `senders-api-testing` - Generate curl commands for individual API tests
+- `twilio-phone-number-manager` - Search, purchase, and manage Twilio phone numbers
 - `ottm-bigquery-debugging` - Deep-dive into specific request logs
+- `senders-api-testing` - ⚠️ DEPRECATED - Use this skill instead

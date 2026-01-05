@@ -1,9 +1,27 @@
 ---
 name: senders-api-testing
-description: Use when testing Senders API endpoints, generating curl commands for WhatsApp or RCS senders, creating/updating/deleting sender profiles, or debugging Senders API v2 in dev/stage/prod environments. Includes authentication patterns, payload examples, and credential security best practices.
+description: "⚠️ DEPRECATED - Use `senders-e2e-testing` instead. This skill is no longer maintained."
 ---
 
-# Senders API Curl Testing
+# ⚠️ DEPRECATED
+
+**This skill has been deprecated.** Please use `senders-e2e-testing` instead.
+
+The E2E testing skill includes:
+- All API testing functionality from this skill
+- Automated BigQuery log verification
+- Error detection and bug analysis
+- Phone number provisioning (via `twilio-phone-number-manager`)
+- Credential management for multiple environments
+
+## Migration
+
+Instead of: "test senders api"
+Use: "run senders e2e tests"
+
+---
+
+# Senders API Curl Testing (Legacy)
 
 This skill helps generate and execute curl requests to test the Senders API (v2).
 

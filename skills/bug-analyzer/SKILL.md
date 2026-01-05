@@ -1,6 +1,6 @@
 ---
 name: bug-analyzer
-description: Universal bug analyzer that classifies ANY error as BUG, EXPECTED BEHAVIOR, or IMPROVEMENT OPPORTUNITY using service-agnostic principles. Optional code review for root cause analysis.
+description: "Classify specific error messages as BUG/EXPECTED/IMPROVEMENT. ONLY use when errors have ALREADY been discovered and user asks 'is this a bug?' or 'classify this error'. NOT for discovering bugs - use auto-bug-detector instead."
 ---
 
 # Bug Analyzer (Universal)
@@ -11,11 +11,18 @@ Service-agnostic error analyzer that classifies errors using universal software 
 
 ## When to Use
 
-- After discovering errors (from bigquery-error-scanner or other sources)
-- "Analyze this error for bugs"
-- "Classify these errors"
-- "Is this error a bug or expected behavior?"
-- Used by auto-bug-detector for automated classification
+**ONLY invoke when:**
+- User provides specific error message(s) and asks "is this a bug?"
+- User asks to "classify this error" with specific error details
+- Called internally by auto-bug-detector after discovering errors
+
+**DO NOT invoke for:**
+- "Find bugs" or "scan for bugs" (use auto-bug-detector)
+- Discovering errors (use bigquery-error-scanner)
+- E2E testing (use senders-e2e-testing)
+- General "check for issues"
+
+**This skill classifies EXISTING errors, it does NOT discover them.**
 
 ## Project Context Support
 

@@ -1,6 +1,17 @@
 ---
 name: auto-bug-detector
-description: Automated bug detection pipeline that orchestrates error scanning, classification, and reporting. User-friendly interface for complete end-to-end bug discovery from BigQuery logs.
+description: "BigQuery log analysis pipeline for Twilio projects. ONLY use when user explicitly says 'scan BigQuery logs', 'scan OTTM logs', 'scan prod/dev/stage logs', or mentions a registered project like 'ottm' with 'logs' or 'BigQuery'. NOT for code bugs, API testing, or general scanning."
+allowed-tools:
+  - Bash
+  - Bash(cat:*)
+  - Bash(bq query:*)
+  - Bash(CLOUDSDK_PYTHON_SITEPACKAGES=1 bq query:*)
+  - Read
+  - Grep
+  - Glob
+  - Write
+  - Task
+  - Skill
 ---
 
 # Auto Bug Detector (Pipeline Orchestrator)
@@ -11,12 +22,33 @@ Complete automated bug detection pipeline that combines error scanning, classifi
 
 ## When to Use
 
-- "Scan {table/skill} for bugs from last N hours"
-- "Find bugs in {table}"
-- "Scan OTTM/Senders logs for bugs"
-- "Auto-detect bugs and create tickets"
-- "Check {monitoring-skill} for new bugs"
-- "Scan {project_id} for bugs" (e.g., "Scan ottm for bugs")
+**ONLY invoke this skill when the user explicitly:**
+- Says "scan BigQuery logs" or "scan BQ logs"
+- Says "scan OTTM logs" or "scan Senders logs" (implies BigQuery)
+- Says "scan prod/dev/stage logs for bugs"
+- Mentions a registered project ID + "logs" (e.g., "scan ottm logs")
+- Says "auto-detect bugs from logs" or "bug detection pipeline"
+
+**DO NOT invoke for:**
+- "Find bugs" or "scan for bugs" without mentioning logs/BigQuery
+- Code review or codebase analysis
+- API testing (use senders-e2e-testing instead)
+- General "check for issues" requests
+- Jira ticket operations
+- Any request that doesn't explicitly mention BigQuery/logs
+
+**Example triggers (YES):**
+- "Scan OTTM BigQuery logs for bugs"
+- "Run auto bug detector on prod logs"
+- "Scan ottm logs from last 4 hours"
+- "Check BigQuery for new bugs in Senders"
+
+**Example non-triggers (NO):**
+- "Find bugs in my code" (no logs mentioned)
+- "Scan for issues" (too vague)
+- "Check OTTM for problems" (must say "logs")
+- "Create a Jira ticket"
+- "Test the Senders API"
 
 ## Pipeline Stages
 

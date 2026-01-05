@@ -1,6 +1,6 @@
 ---
 name: universal-error-mapping-scanner
-description: Scan BigQuery logs for external API error codes and identify which ones are NOT handled in a project's codebase. Works with any Twilio project configured in the registry.
+description: "Find unmapped external API error codes (Meta, Twilio, etc.) in codebase. ONLY use when user explicitly asks about 'error mapping', 'unhandled error codes', or 'error mapping gaps'. NOT for general bug scanning."
 ---
 
 # Universal Error Mapping Scanner
@@ -17,11 +17,27 @@ Proactively identifies gaps in external API error handling by:
 
 ## When to Use
 
-- "Scan {project_id} for missing error mappings"
-- "Find unhandled {external_api} error codes in {project}"
-- "Check for error mapping gaps"
-- "What errors are we not handling?"
-- Called by auto-bug-detector when `project.error_mapping.enabled: true`
+**ONLY invoke this skill when the user explicitly:**
+- Says "error mapping" or "error mappings"
+- Asks about "unhandled error codes" or "unmapped errors"
+- Says "error mapping gaps" or "missing error handlers"
+- Asks "what {API} errors are we not handling?"
+
+**DO NOT invoke for:**
+- General "find bugs" or "scan for errors" (use auto-bug-detector)
+- E2E testing (use senders-e2e-testing)
+- Debugging specific requests (use ottm-bigquery-debugging)
+- Code review
+
+**Example triggers (YES):**
+- "Scan OTTM for missing Meta error mappings"
+- "What Meta errors are not handled in the codebase?"
+- "Find error mapping gaps for external APIs"
+
+**Example non-triggers (NO):**
+- "Scan for bugs"
+- "Find errors in logs"
+- "Check for issues"
 
 ## Pre-Approved Permissions
 

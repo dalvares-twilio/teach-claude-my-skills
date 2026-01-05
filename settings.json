@@ -8,7 +8,9 @@
     "harness-docs@twilio": true,
     "owl-tools@twilio": true,
     "buildkite-tools@twilio": true,
-    "code-review-personae@twilio": true
+    "code-review-personae@twilio": true,
+    "superpowers-chrome@superpowers-marketplace": true,
+    "superpowers-developing-for-claude-code@superpowers-marketplace": true
   },
   "alwaysThinkingEnabled": false
 }

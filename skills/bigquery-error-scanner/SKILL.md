@@ -1,6 +1,6 @@
 ---
 name: bigquery-error-scanner
-description: Universal BigQuery error scanner that discovers UNIQUE/NEW error patterns from any table. Tracks error signatures to filter noise and only reports errors never seen before.
+description: "Scan BigQuery tables for error logs. ONLY use when user explicitly mentions 'BigQuery', 'BQ', 'logs table', or a specific BigQuery table name like 'project.dataset.table'. NOT for general bug finding or code scanning."
 ---
 
 # BigQuery Error Scanner
@@ -11,10 +11,30 @@ Universal error discovery engine that scans ANY BigQuery table for errors and re
 
 ## When to Use
 
-- "Scan {project}.{dataset}.{table} for unique errors"
-- "Find new errors in {table} from last N hours"
-- "Check {table} for errors where {condition}"
-- Used internally by generated monitoring skills
+**ONLY invoke this skill when the user explicitly:**
+- Mentions "BigQuery" or "BQ" (e.g., "scan BigQuery for errors")
+- Provides a fully-qualified table name like `project.dataset.table`
+- Says "scan logs table" or "query error logs"
+- References a specific monitoring skill (e.g., "ottm-logs-monitor")
+
+**DO NOT invoke for:**
+- General "find bugs" or "scan for issues" requests
+- Code review or codebase scanning
+- API testing (use senders-e2e-testing instead)
+- Jira ticket creation
+- Any task not explicitly about BigQuery log tables
+
+**Example triggers (YES):**
+- "Scan BigQuery for errors from last 4 hours"
+- "Query qtco-messaging-channels.prod.app_logs for unique errors"
+- "Check BQ logs for new error patterns"
+- "Scan the OTTM logs table"
+
+**Example non-triggers (NO):**
+- "Find bugs in my code"
+- "Scan for issues"
+- "Check for errors" (too vague - must mention BigQuery)
+- "Test the API"
 
 ## Key Features
 
