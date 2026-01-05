@@ -11,7 +11,8 @@ A Claude Code skill-based system for automated bug detection across Twilio proje
 | Requirement | Purpose | Setup |
 |-------------|---------|-------|
 | **Claude Code CLI** | Run the skills | [Install Claude Code](https://docs.anthropic.com/claude-code) |
-| **jira-inator plugin** | Create Jira tickets | `/install-plugin jira-inator@twilio` |
+| **Twilio Marketplace** | Access Twilio internal plugins | `claude plugin marketplace add twilio-internal/claude-marketplace` |
+| **jira-inator plugin** | Create Jira tickets | `claude plugin install jira-inator@twilio` |
 | **Google Cloud SDK** | Query BigQuery logs | `brew install google-cloud-sdk` |
 | **BigQuery Access** | Read project logs | `gcloud auth login` |
 
@@ -20,7 +21,20 @@ A Claude Code skill-based system for automated bug detection across Twilio proje
 | Requirement | Purpose | Setup |
 |-------------|---------|-------|
 | **Local Repository** | Code review for root cause | Clone the project repo locally |
-| **superpowers plugin** | Enhanced agent capabilities | `/install-plugin superpowers@superpowers-marketplace` |
+| **superpowers plugin** | Enhanced agent capabilities | `claude plugin install superpowers@superpowers-marketplace` |
+
+### Installation Order
+
+1. First, add the Twilio internal marketplace:
+   ```bash
+   claude plugin marketplace add twilio-internal/claude-marketplace
+   ```
+
+2. Then install required plugins:
+   ```bash
+   claude plugin install jira-inator@twilio
+   claude plugin install git-tools@twilio
+   ```
 
 ### Verify Setup
 
