@@ -1,5 +1,4 @@
 {
-  "model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
   "enabledPlugins": {
     "internal-product-docs@twilio": true,
     "superpowers@superpowers-marketplace": true,
@@ -11,6 +10,5 @@
     "code-review-personae@twilio": true,
     "superpowers-chrome@superpowers-marketplace": true,
     "superpowers-developing-for-claude-code@superpowers-marketplace": true
-  },
-  "alwaysThinkingEnabled": false
+  }
 }

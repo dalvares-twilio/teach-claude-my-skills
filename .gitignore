@@ -24,3 +24,5 @@ ide/
 
 # Project session data (contains conversation history)
 projects/
+paste-cache/
+stats-cache.json

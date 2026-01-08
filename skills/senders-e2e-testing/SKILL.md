@@ -22,6 +22,71 @@ Use this skill when you need to:
 - "Verify my Senders API changes in dev/stage/prod"
 - "Run regression tests and analyze any failures"
 
+## Python Script (Recommended)
+
+**ALWAYS use the Python script** instead of raw curl commands. It handles credentials, response parsing, and RQ ID extraction reliably without shell parsing issues.
+
+**Script location:** `senders_api.py` (same directory as this skill)
+
+### Commands
+
+```bash
+# Set credentials (once per session, or if /tmp credentials expired)
+python3 $SKILL_DIR/senders_api.py set-credentials ACCOUNT_SID AUTH_TOKEN ENV
+
+# List saved credentials
+python3 $SKILL_DIR/senders_api.py list-credentials
+
+# CREATE sender
+python3 $SKILL_DIR/senders_api.py create --env=prod --sender-id="whatsapp:+17814887075"
+python3 $SKILL_DIR/senders_api.py create --env=dev --sender-id="whatsapp:+17814887075" --waba-id=1394386238892041
+
+# GET sender
+python3 $SKILL_DIR/senders_api.py get --env=prod XE0ad955eb86324c78d9b3ee6d6a7cb5c4
+
+# UPDATE sender
+python3 $SKILL_DIR/senders_api.py update --env=prod XE0ad955eb86324c78d9b3ee6d6a7cb5c4
+python3 $SKILL_DIR/senders_api.py update --env=prod XE0ad955eb86324c78d9b3ee6d6a7cb5c4 --description="Updated desc"
+
+# DELETE sender
+python3 $SKILL_DIR/senders_api.py delete --env=prod XE0ad955eb86324c78d9b3ee6d6a7cb5c4
+```
+
+**Where `$SKILL_DIR`** = directory containing this skill (e.g., `~/.claude/skills/senders-e2e-testing`)
+
+### Output Format
+
+All operations display consistently:
+```
+============================================================
+SENDERS API: CREATE
+============================================================
+Environment:    prod
+URL:            https://messaging.twilio.com/v2/Channels/Senders
+Method:         POST
+
+=== REQUEST PAYLOAD ===
+{...formatted JSON...}
+
+=== RESPONSE (HTTP 202) ===
+Twilio-Request-Id: RQ123abc...
+
+{...formatted JSON response...}
+============================================================
+
+Sender SID: XE0ad955eb86324c78d9b3ee6d6a7cb5c4
+RQ ID Collected: RQ123abc...
+```
+
+### Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `senders_api.py` | Skill directory | Main script (portable) |
+| `twilio_senders_test_credentials.json` | `/tmp/` | API credentials (ephemeral) |
+| `senders_api_response.json` | `/tmp/` | Last response body |
+| `senders_api_headers.json` | `/tmp/` | Last response headers |
+
 ## Credential Handling Modes
 
 ### Mode 1: Pass-Through (User provides curl with credentials)
@@ -65,6 +130,8 @@ curl -v -X POST "https://messaging.dev.twilio.com/v2/Channels/Senders" \
 }
 ```
 
+**IMPORTANT:** Use this SAME profile.name ("Twilio Test1") for both CREATE and UPDATE operations unless user explicitly provides a different name.
+
 - Payload WITH WABA ID:
   ```json
   {
@@ -79,6 +146,47 @@ curl -v -X POST "https://messaging.dev.twilio.com/v2/Channels/Senders" \
     }
   }
   ```
+
+### UPDATE Payload Template
+
+**IMPORTANT: Keep profile.name SAME as CREATE unless user provides different value.**
+
+When updating a sender, use the same profile structure as CREATE. Only change values that the user explicitly requests to change.
+
+**Default UPDATE Payload (profile-only update):**
+```json
+{
+  "profile": {
+    "name": "Twilio Test1",
+    "description": "Senders API UAT",
+    "logo_url": "https://www.logomaker.com/wp-content/uploads/2018/10/twitter.png",
+    "emails": [{ "email": "twilio@twilio.com" }],
+    "websites": [{ "website": "https://twilio.com" }]
+  }
+}
+```
+
+**Rules for UPDATE payload:**
+1. **profile.name**: Keep SAME as CREATE (use "Twilio Test1" unless user specifies different)
+2. **profile.description**: Can update (e.g., "Senders API UAT - Updated")
+3. **Other profile fields**: Keep same structure as CREATE
+4. **Do NOT include**: `sender_id` or `configuration` in UPDATE payload (not allowed)
+
+**Example - If user says "update the sender":**
+Use the default UPDATE payload above with same profile.name as CREATE.
+
+**Example - If user says "update description to XYZ":**
+```json
+{
+  "profile": {
+    "name": "Twilio Test1",
+    "description": "XYZ",
+    "logo_url": "https://www.logomaker.com/wp-content/uploads/2018/10/twitter.png",
+    "emails": [{ "email": "twilio@twilio.com" }],
+    "websites": [{ "website": "https://twilio.com" }]
+  }
+}
+```
 
 ### Mode 2: Saved Credentials (No curl provided)
 
@@ -147,6 +255,36 @@ Only prompt for:
 - Test case selection IF user's intent is unclear
 - **Parent epic ONCE before creating bug tickets** (allow empty response)
 
+## Test Operations Checklist
+
+**Default E2E test runs these operations in order:**
+
+| Step | Operation | Method | Requires User Confirmation |
+|------|-----------|--------|---------------------------|
+| 1 | CREATE | POST /v2/Channels/Senders | No (start automatically) |
+| 2 | GET | GET /v2/Channels/Senders/{sid} | **Yes** |
+| 3 | UPDATE | PATCH /v2/Channels/Senders/{sid} | **Yes** |
+| 4 | DELETE | DELETE /v2/Channels/Senders/{sid} | **Yes** |
+
+**CRITICAL RULES:**
+1. Always start with CREATE (no confirmation needed)
+2. After CREATE succeeds, ASK user before each subsequent operation
+3. If user declines an operation, skip it and ask about the next one
+4. Collect ALL RQ IDs from executed operations for batch BigQuery query
+5. Only when RETRYING a failed request within the same session, do NOT re-ask
+
+**User Confirmation Format (use AskUserQuestion):**
+```
+CREATE completed successfully.
+Sender SID: XE0ad955eb86324c78d9b3ee6d6a7cb5c4
+
+Question: "Run GET sender?"
+Options:
+- "Yes - Run GET"
+- "Skip to UPDATE"
+- "Stop - End testing here"
+```
+
 ## Instructions
 
 Follow this workflow step-by-step:
@@ -173,23 +311,18 @@ This step handles credential and phone number setup when user doesn't provide a 
 3. If environment exists: Use those credentials (offer override option)
 4. If environment NOT configured: Prompt for credentials, save to array
 
-#### Step 0b: Phone Number Setup (Optional)
+#### Step 0b: Phone Number Setup
 
-If user wants to use a specific phone number or purchase a new one:
+**CRITICAL: Always purchase a NEW phone number for each new E2E test session.**
 
-1. **Reference `twilio-phone-number-manager` skill**
-2. Check phone number registry at `/Users/dalvares/.claude/skills/twilio-phone-number-manager/phone-numbers.json`
-3. Display options:
-   ```
-   Phone Number Registry:
-   | #  | Phone Number     | Location      | Purchased    |
-   |----|------------------|---------------|--------------|
-   | 1  | +17622268498     | Dalton, GA    | 2026-01-05   |
+- NEVER maintain a phone number registry or store purchased numbers
+- Only reuse the same number when RETRYING a failed request within the same test run
+- Use `twilio-phone-number-manager` skill to purchase a new US Local number
 
-   Use existing number, purchase new, or skip?
-   ```
-4. If purchase new: Invoke `twilio-phone-number-manager` skill
-5. Return selected phone number for use in tests (e.g., `whatsapp:+17622268498`)
+**Why always purchase new?**
+- Existing numbers may already be registered on WhatsApp (causes "Phone Number In Use" errors)
+- Fresh numbers ensure clean E2E test results
+- Avoids false positives from previous test state
 
 ### Step 1: Setup
 
@@ -204,68 +337,93 @@ If user wants to use a specific phone number or purchase a new one:
 - Environment is ambiguous
 - User's intent for test operations is unclear
 
-### Step 2: Execute Tests and Collect RQ IDs
+### Step 2: Execute Tests with User Confirmation
 
-Execute each test sequentially using **separate Bash tool calls**:
+Execute operations sequentially, asking user before each operation after CREATE.
 
-**CRITICAL: Use 5 separate Bash calls for each test. Do NOT combine steps.**
+#### Operation 1: CREATE (No confirmation needed)
 
+1. Purchase new phone number
+2. Execute CREATE request using Python script:
+   ```bash
+   python3 $SKILL_DIR/senders_api.py create --env=ENV --sender-id="whatsapp:+1234567890"
+   ```
+3. Store Sender SID for subsequent operations
+4. Collect RQ ID
+
+**CRITICAL: After EVERY API request, output this summary:**
+```
+**Request ID:** RQ123abc...
+**Sender SID:** XE123...
+**Sender ID:** whatsapp:+1234567890
+**HTTP Status:** 202 CREATING
+**Account SID:** ACxxxx...xxxx
+```
+
+This summary MUST appear after each request execution so the user can easily track Request IDs and key parameters without scrolling through verbose output.
+
+#### Operation 2: GET (Ask user first)
+
+**Use AskUserQuestion:**
+```
+Question: "CREATE completed. Run GET sender?"
+Options:
+- "Yes - Run GET"
+- "Skip to UPDATE"
+- "Stop testing here"
+```
+
+If **Yes**: Execute GET using Python script:
 ```bash
-# Bash Call 1: Write payload to file (for POST/PATCH)
-cat > /tmp/payload.json << 'EOF'
-{
-  "sender_id": "whatsapp:+18565589907",
-  "configuration": { "waba_id": "101347185975530" },
-  "profile": { "name": "Test Sender" }
-}
-EOF
+python3 $SKILL_DIR/senders_api.py get --env=ENV SENDER_SID
+```
+Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account SID).
 
-# Bash Call 2: Execute curl (double quotes for variable substitution)
-curl -s -D /tmp/headers.txt -X POST "https://messaging.dev.twilio.com/v2/Channels/Senders" \
-  -u "ACCOUNT_SID:AUTH_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/payload.json -o /tmp/response.json
+If **Skip**: Move to Operation 3 (UPDATE)
+If **Stop**: Proceed to Step 3 (BigQuery polling)
 
-# Bash Call 3: Display response headers
-cat /tmp/headers.txt
+#### Operation 3: UPDATE (Ask user first)
 
-# Bash Call 4: Display response body
-cat /tmp/response.json | python3 -m json.tool
-
-# Bash Call 5: Extract RQ ID
-grep -i "twilio-request-id" /tmp/headers.txt | awk '{print $2}' | tr -d '\r'
+**Use AskUserQuestion:**
+```
+Question: "Ready to run UPDATE sender?"
+Options:
+- "Yes - Run UPDATE"
+- "Skip to DELETE"
+- "Stop testing here"
 ```
 
-**Why separate calls?**
-- Prevents bash parsing errors with complex command chaining
-- Makes debugging easier (each step succeeds/fails independently)
-- Clearer output for user visibility
-
-**For each test, ALWAYS print:**
+If **Yes**: Execute UPDATE using Python script:
+```bash
+python3 $SKILL_DIR/senders_api.py update --env=ENV SENDER_SID
 ```
-=== TEST N: CREATE ===
-Request: POST https://messaging.dev.twilio.com/v2/Channels/Senders
-Payload: {"sender_id": "whatsapp:+1234567890", ...}
+Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account SID).
 
-=== RESPONSE HEADERS ===
-HTTP/2 201
-X-Twilio-Request-Id: RQ123abc...
-Content-Type: application/json
+If **Skip**: Move to Operation 4 (DELETE)
+If **Stop**: Proceed to Step 3 (BigQuery polling)
 
-=== RESPONSE BODY ===
-{...formatted JSON...}
+#### Operation 4: DELETE (Ask user first)
 
-RQ ID Collected: RQ123abc...
+**Use AskUserQuestion:**
+```
+Question: "Ready to run DELETE sender?"
+Options:
+- "Yes - Run DELETE"
+- "No - Skip DELETE"
 ```
 
-**For each test:**
-1. **Bash Call 1**: Write payload file (if POST/PATCH)
-2. **Bash Call 2**: Execute curl with `-D /tmp/headers.txt -o /tmp/response.json`
-3. **Bash Call 3**: Display headers with `cat /tmp/headers.txt`
-4. **Bash Call 4**: Display response body with `cat /tmp/response.json | python3 -m json.tool`
-5. **Bash Call 5**: Extract RQ ID with `grep -i "twilio-request-id"`
-6. Store RQ ID in collection for batch query
-7. Brief 100ms pause between tests (use `sleep 0.1`)
+If **Yes**: Execute DELETE using Python script:
+```bash
+python3 $SKILL_DIR/senders_api.py delete --env=ENV SENDER_SID
+```
+Then output the summary (Request ID, Sender SID, HTTP Status, Account SID).
+
+If **No**: Proceed to Step 3 (BigQuery polling)
+
+#### After All Operations
+
+- Proceed to Step 3 (Wait for Log Propagation)
+- Use ALL collected RQ IDs in batch BigQuery query
 
 **Track collected RQ IDs** for later batch query.
 

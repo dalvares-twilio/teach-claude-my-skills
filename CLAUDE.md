@@ -36,6 +36,12 @@ The ONLY time to ask for approval during E2E testing:
 
 When running Senders API E2E tests:
 
+**Phone Number Management:**
+- NEVER maintain a phone number registry or store purchased phone numbers
+- ALWAYS purchase a NEW phone number when starting a new E2E test session
+- Only reuse the same phone number when RETRYING a request as part of an existing test run
+- Do not track or save phone numbers to any file
+
 **Always display ALL errors found in BigQuery with complete details:**
 - Display EVERY error row returned by error detection query
 - Include all severity levels: error, warning, info
@@ -99,6 +105,7 @@ When running Senders API E2E tests:
   - Next steps for investigation
 - Display created ticket key and URL
 - Remind user to set "Team (migrated)" field to "Sender Management" manually (custom field not supported by jira-inator)
-- Always switch model on startup to Opus 4.5 or greater
+- Always switch model on startup to Sonnet
 - Dont create feature branches with names starting with feature/jira-inator-ticket-transitions instead create branches like jira-inator-ticket-transitions
 - If i ask you to switch to obsidian, change directory to cd /Users/dalvares/Documents/Obsidian Vault/
+- If i say switch to claude-marketplace or plugin , change directory to  /Users/dalvares/Projects/claude-marketplace
