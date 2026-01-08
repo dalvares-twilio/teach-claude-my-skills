@@ -18,140 +18,98 @@ This skill manages Twilio phone number operations including searching, purchasin
 ## Key Constraints
 
 - **Phone number purchases ALWAYS use Twilio Prod API** (`api.twilio.com`)
+- **CRITICAL: ALWAYS use PROD credentials** - regardless of which environment (dev/stage/prod) you're testing the Senders API on
 - **Default search:** US Local, SMS-enabled
 - Numbers purchased here can be used in Senders API tests on any environment (dev/stage/prod)
 
-## Credential Management
+## Prod Credentials (MANDATORY)
 
-### Prod Credentials Storage
-Store in `/tmp/twilio_prod_credentials.json`:
-```json
-{
-  "account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "auth_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "description": "Prod account for phone number purchases"
-}
+**Credentials file:** `/tmp/twilio_prod_credentials.json`
+
+**Known Prod Account for Phone Purchases:**
+```
+Account SID: AC[REDACTED - Ask user for prod account SID]
 ```
 
-### Credential Workflow
-1. Check if `/tmp/twilio_prod_credentials.json` exists
-2. If exists: Display masked credentials
-   ```
-   Found saved Prod credentials: AC...xxxx
-   Use these credentials? (Y/n/override)
-   ```
-3. If not exists or user wants override: Prompt for credentials, save to file
+**IMPORTANT RULE:**
+1. Before ANY phone number operation, check if `/tmp/twilio_prod_credentials.json` exists
+2. If it exists, verify it contains the correct prod account (ask user for Account SID)
+3. If missing or has wrong account, ASK the user for prod credentials before proceeding
+4. NEVER use dev/stage credentials for phone purchases - this is a billing/provisioning operation that only works on prod
 
-### Credential Commands
+## Python Script (Recommended)
+
+**ALWAYS use the Python script** instead of raw curl commands. It handles credentials, error handling, and registry management reliably.
+
+**Script location:** `phone_manager.py` (same directory as this skill)
+
+### Commands
+
 ```bash
-# Check for existing credentials
-cat /tmp/twilio_prod_credentials.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Account: {d[\"account_sid\"][:6]}...{d[\"account_sid\"][-4:]}')" || echo "No saved credentials"
+# Set credentials (once per session, or if /tmp credentials expired)
+python3 $SKILL_DIR/phone_manager.py set-credentials ACCOUNT_SID AUTH_TOKEN
 
-# Save credentials (use python to create JSON properly)
-python3 << 'EOF'
-import json
-creds = {
-    "account_sid": "ACCOUNT_SID_HERE",
-    "auth_token": "AUTH_TOKEN_HERE",
-    "description": "Prod account for phone number purchases"
-}
-with open('/tmp/twilio_prod_credentials.json', 'w') as f:
-    json.dump(creds, f, indent=2)
-print("Credentials saved")
-EOF
+# Search for available numbers (default: US Local, SMS-enabled)
+python3 $SKILL_DIR/phone_manager.py search
+python3 $SKILL_DIR/phone_manager.py search --area-code=415
+python3 $SKILL_DIR/phone_manager.py search --limit=10
+
+# Purchase a specific number
+python3 $SKILL_DIR/phone_manager.py purchase +17656001985
+
+# List all purchased numbers from registry
+python3 $SKILL_DIR/phone_manager.py list
 ```
 
-## Phone Number Operations
+**Where `$SKILL_DIR`** = directory containing this skill (e.g., `~/.claude/skills/twilio-phone-number-manager`)
 
-### 1. Search Available Numbers
+### Workflow
 
-**Defaults (unless user specifies otherwise):**
-- Country: **US only**
-- Type: **Local**
-- Required capability: **SMS enabled**
+1. **Check credentials:** Script reads from `/tmp/twilio_prod_credentials.json`
+2. **If missing:** Run `set-credentials` command first
+3. **Search:** Find available numbers
+4. **Purchase:** Buy selected number (auto-added to registry)
+5. **Verify:** Use `list` to confirm purchase
 
-**API Call:**
-```bash
-# Read credentials
-CREDS=$(cat /tmp/twilio_prod_credentials.json)
-ACCOUNT_SID=$(echo $CREDS | python3 -c "import sys,json; print(json.load(sys.stdin)['account_sid'])")
-AUTH_TOKEN=$(echo $CREDS | python3 -c "import sys,json; print(json.load(sys.stdin)['auth_token'])")
+### Output Examples
 
-# Search for US Local SMS-enabled numbers
-curl -s "https://api.twilio.com/2010-04-01/Accounts/$ACCOUNT_SID/AvailablePhoneNumbers/US/Local.json?SmsEnabled=true" \
-  -u "$ACCOUNT_SID:$AUTH_TOKEN" | python3 -m json.tool
-```
-
-**Optional Filters (add to URL):**
-- Area code: `&AreaCode=415`
-- Contains pattern: `&Contains=777`
-- MMS enabled: `&MmsEnabled=true`
-- Voice enabled: `&VoiceEnabled=true`
-
-**Display Format:**
+**Search:**
 ```
 Available Phone Numbers (US Local, SMS-enabled):
 
-| #  | Phone Number     | Location      | Capabilities        |
-|----|------------------|---------------|---------------------|
-| 1  | (762) 226-8498   | Dalton, GA    | SMS, MMS, Voice, Fax|
-| 2  | (920) 614-6192   | Rio, WI       | SMS, MMS, Voice, Fax|
-| 3  | (925) 320-6534   | Moraga, CA    | SMS, MMS, Voice, Fax|
+| #  | Phone Number     | Location           | Capabilities         |
+|----|------------------|--------------------|----------------------|
+| 1  | +17656001985     | Amboy, IN          | SMS, MMS, Voice, Fax |
+| 2  | +17653905169     | Kingman, IN        | SMS, MMS, Voice, Fax |
 
-Enter number to purchase (e.g., +17622268498) or 'cancel':
+First available: +17656001985
 ```
 
-### 2. Purchase Number
+**Purchase:**
+```
+==================================================
+Phone Number Purchased Successfully!
+==================================================
+Phone Number:   +17656001985
+SID:            PNd85bd337f0b42195924a4d39f811e5e5
+Friendly Name:  (765) 600-1985
+Capabilities:   SMS, MMS, Voice, Fax
+==================================================
 
-```bash
-# Purchase a specific number
-curl -s -X POST "https://api.twilio.com/2010-04-01/Accounts/$ACCOUNT_SID/IncomingPhoneNumbers.json" \
-  -u "$ACCOUNT_SID:$AUTH_TOKEN" \
-  -d "PhoneNumber=+1XXXXXXXXXX" | python3 -m json.tool
+Added to registry: /path/to/phone-numbers.json
 ```
 
-**Workflow:**
-1. Verify number is SMS-capable (from search results)
-2. Execute purchase API call
-3. Extract SID and details from response
-4. Add to phone number registry
-5. Display confirmation
+## Files
 
-**Success Output:**
-```
-✓ Phone Number Purchased Successfully!
-
-Phone Number: +17622268498
-SID: PNd85bd337f0b42195924a4d39f811e5e5
-Friendly Name: (762) 226-8498
-Location: Dalton, GA
-Capabilities: SMS, MMS, Voice, Fax
-
-Added to registry. Ready for use in Senders API tests.
-```
-
-### 3. List Purchased Numbers
-
-Read from registry and display:
-```bash
-cat /Users/dalvares/.claude/skills/twilio-phone-number-manager/phone-numbers.json | python3 -m json.tool
-```
-
-**Display Format:**
-```
-Purchased Phone Numbers:
-
-| #  | Phone Number     | Location      | Purchased    | SID         |
-|----|------------------|---------------|--------------|-------------|
-| 1  | +17622268498     | Dalton, GA    | 2026-01-05   | PN...e5e5   |
-| 2  | +19253206534     | Moraga, CA    | 2026-01-05   | PN...1234   |
-
-Select a number to use, or 'new' to purchase a new one:
-```
+| File | Location | Purpose |
+|------|----------|---------|
+| `phone_manager.py` | Skill directory | Main script (portable) |
+| `phone-numbers.json` | Skill directory | Registry of purchased numbers |
+| `twilio_prod_credentials.json` | `/tmp/` | API credentials (ephemeral) |
 
 ## Phone Number Registry
 
-**Location:** `/Users/dalvares/.claude/skills/twilio-phone-number-manager/phone-numbers.json`
+**Location:** Same directory as `phone_manager.py` → `phone-numbers.json`
 
 **Schema:**
 ```json
@@ -161,41 +119,11 @@ Select a number to use, or 'new' to purchase a new one:
       "phone_number": "+17622268498",
       "sid": "PNd85bd337f0b42195924a4d39f811e5e5",
       "friendly_name": "(762) 226-8498",
-      "location": "Dalton, GA",
       "capabilities": ["SMS", "MMS", "Voice", "Fax"],
       "purchased_at": "2026-01-05T01:02:38Z"
     }
   ]
 }
-```
-
-**Adding to Registry (Python):**
-```python
-import json
-from datetime import datetime
-
-# Load existing registry
-registry_path = '/Users/dalvares/.claude/skills/twilio-phone-number-manager/phone-numbers.json'
-try:
-    with open(registry_path, 'r') as f:
-        registry = json.load(f)
-except FileNotFoundError:
-    registry = {"purchased_numbers": []}
-
-# Add new number (from purchase response)
-new_number = {
-    "phone_number": "+1XXXXXXXXXX",
-    "sid": "PNXXXXXXXXX",
-    "friendly_name": "(XXX) XXX-XXXX",
-    "location": "City, ST",
-    "capabilities": ["SMS", "MMS", "Voice", "Fax"],
-    "purchased_at": datetime.utcnow().isoformat() + "Z"
-}
-registry["purchased_numbers"].append(new_number)
-
-# Save registry
-with open(registry_path, 'w') as f:
-    json.dump(registry, f, indent=2)
 ```
 
 ## Integration with Senders E2E Testing
