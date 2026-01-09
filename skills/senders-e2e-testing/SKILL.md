@@ -282,7 +282,8 @@ Question: "Run GET sender?"
 Options:
 - "Yes - Run GET"
 - "Skip to UPDATE"
-- "Stop - End testing here"
+- "Stop testing here"
+- "Type something"
 ```
 
 ## Instructions
@@ -362,6 +363,12 @@ Execute operations sequentially, asking user before each operation after CREATE.
 
 This summary MUST appear after each request execution so the user can easily track Request IDs and key parameters without scrolling through verbose output.
 
+**CRITICAL: After outputting the summary, immediately proceed to the next AskUserQuestion.**
+- Do NOT add any commentary like "Would you like to continue testing?"
+- Do NOT ask open-ended questions
+- Go STRAIGHT to the structured AskUserQuestion with the 4 options
+- No additional text between the summary and the question
+
 #### Operation 2: GET (Ask user first)
 
 **Use AskUserQuestion:**
@@ -371,6 +378,7 @@ Options:
 - "Yes - Run GET"
 - "Skip to UPDATE"
 - "Stop testing here"
+- "Type something"
 ```
 
 If **Yes**: Execute GET using Python script:
@@ -378,6 +386,7 @@ If **Yes**: Execute GET using Python script:
 python3 $SKILL_DIR/senders_api.py get --env=ENV SENDER_SID
 ```
 Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account SID).
+**Immediately proceed to Operation 3 question** - no additional commentary.
 
 If **Skip**: Move to Operation 3 (UPDATE)
 If **Stop**: Proceed to Step 3 (BigQuery polling)
@@ -391,6 +400,7 @@ Options:
 - "Yes - Run UPDATE"
 - "Skip to DELETE"
 - "Stop testing here"
+- "Type something"
 ```
 
 If **Yes**: Execute UPDATE using Python script:
@@ -398,6 +408,7 @@ If **Yes**: Execute UPDATE using Python script:
 python3 $SKILL_DIR/senders_api.py update --env=ENV SENDER_SID
 ```
 Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account SID).
+**Immediately proceed to Operation 4 question** - no additional commentary.
 
 If **Skip**: Move to Operation 4 (DELETE)
 If **Stop**: Proceed to Step 3 (BigQuery polling)
@@ -410,6 +421,7 @@ Question: "Ready to run DELETE sender?"
 Options:
 - "Yes - Run DELETE"
 - "No - Skip DELETE"
+- "Type something"
 ```
 
 If **Yes**: Execute DELETE using Python script:
@@ -417,6 +429,7 @@ If **Yes**: Execute DELETE using Python script:
 python3 $SKILL_DIR/senders_api.py delete --env=ENV SENDER_SID
 ```
 Then output the summary (Request ID, Sender SID, HTTP Status, Account SID).
+**After DELETE, proceed immediately to Step 3** - no additional commentary.
 
 If **No**: Proceed to Step 3 (BigQuery polling)
 
