@@ -1,19 +1,19 @@
 ---
 name: senders-e2e-testing
-description: Automated end-to-end testing of Senders API with BigQuery log verification, error detection, and code review trigger. Use when running multiple API tests and want automated log polling, error detection, and bug analysis.
+description: Automated end-to-end testing of Senders API with otel_logs (Grafana/ClickHouse) log verification, error detection, and code review trigger. Use when running multiple API tests and want automated log polling, error detection, and bug analysis.
 ---
 
 # Senders E2E Testing
 
-> ⚠️ **PORT NEEDED — BigQuery is retired.** The log-verification / polling steps below use BigQuery (`bq query`), which no longer exists. They must be migrated to Grafana `otel_logs` (use the `grafana-clickhouse-access` skill) before this skill runs end-to-end. The API-driving steps still work.
+> **Logs via Grafana `otel_logs` (ClickHouse).** BigQuery is retired; log verification uses `otel_logs` through the Grafana HTTP API — see the `grafana-clickhouse-access` skill for the connection (endpoint, bearer token, datasource UIDs). Note: **ottm has NO data in the dev `otel_logs` datasource** — verify against **stage or prod**.
 
-This skill automates end-to-end testing of the Senders API with integrated log verification.
+This skill automates end-to-end testing of the Senders API with integrated `otel_logs` verification.
 
 ## Overview
 
 Use this skill when you need to:
 - Run multiple Senders API tests (10+ per session)
-- Automatically verify requests appear in BigQuery logs
+- Automatically verify requests appear in otel_logs
 - Detect errors and trigger code review if bugs found
 - Avoid rate limiting through efficient batch queries
 
@@ -233,8 +233,8 @@ Only use AskUserQuestion if credentials or environment cannot be detected.
 
 The following actions are **pre-approved** and do NOT require user confirmation:
 
-- **BigQuery queries**: Execute `bq query` commands without asking for permission
-- **BigQuery polling**: Run multiple queries during log polling without prompts
+- **otel_logs queries**: Execute Grafana `/api/ds/query` calls (curl) without asking for permission
+- **otel_logs polling**: Run multiple queries during log polling without prompts
 - **Sleep/wait commands**: Use `sleep` for polling intervals
 - **Reading from /tmp/**: ALL read operations from /tmp directory (cat, grep, awk, etc.)
 - **Writing to /tmp/**: ALL write operations to /tmp directory
@@ -245,10 +245,10 @@ The following actions are **pre-approved** and do NOT require user confirmation:
 **NEVER ask for approval when:**
 - Reading files from `/tmp/` directory
 - Writing files to `/tmp/` directory
-- Executing BigQuery queries
+- Executing otel_logs queries
 - Using sleep/wait commands
 - Displaying curl responses
-- **Displaying error details from BigQuery (even if verbose or multiple errors)**
+- **Displaying error details from otel_logs (even if verbose or multiple errors)**
 - Auto-creating Jira tickets for detected bugs (but ask for parent epic once at start)
 
 Only prompt for:
@@ -272,7 +272,7 @@ Only prompt for:
 1. Always start with CREATE (no confirmation needed)
 2. After CREATE succeeds, ASK user before each subsequent operation
 3. If user declines an operation, skip it and ask about the next one
-4. Collect ALL RQ IDs from executed operations for batch BigQuery query
+4. Collect ALL RQ IDs from executed operations for batch otel_logs query
 5. Only when RETRYING a failed request within the same session, do NOT re-ask
 
 **User Confirmation Format (use AskUserQuestion):**
@@ -391,7 +391,7 @@ Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account
 **Immediately proceed to Operation 3 question** - no additional commentary.
 
 If **Skip**: Move to Operation 3 (UPDATE)
-If **Stop**: Proceed to Step 3 (BigQuery polling)
+If **Stop**: Proceed to Step 3 (otel_logs polling)
 
 #### Operation 3: UPDATE (Ask user first)
 
@@ -413,7 +413,7 @@ Then output the summary (Request ID, Sender SID, Sender ID, HTTP Status, Account
 **Immediately proceed to Operation 4 question** - no additional commentary.
 
 If **Skip**: Move to Operation 4 (DELETE)
-If **Stop**: Proceed to Step 3 (BigQuery polling)
+If **Stop**: Proceed to Step 3 (otel_logs polling)
 
 #### Operation 4: DELETE (Ask user first)
 
@@ -433,12 +433,12 @@ python3 $SKILL_DIR/senders_api.py delete --env=ENV SENDER_SID
 Then output the summary (Request ID, Sender SID, HTTP Status, Account SID).
 **After DELETE, proceed immediately to Step 3** - no additional commentary.
 
-If **No**: Proceed to Step 3 (BigQuery polling)
+If **No**: Proceed to Step 3 (otel_logs polling)
 
 #### After All Operations
 
 - Proceed to Step 3 (Wait for Log Propagation)
-- Use ALL collected RQ IDs in batch BigQuery query
+- Use ALL collected RQ IDs in batch otel_logs query
 
 **Track collected RQ IDs** for later batch query.
 
@@ -448,36 +448,40 @@ After all tests complete:
 
 ```
 "All tests executed. Collected {N} RQ IDs."
-"Waiting 30 seconds for logs to propagate to BigQuery..."
+"Waiting 30 seconds for logs to propagate to otel_logs..."
 ```
 
 Use `sleep 30` for initial wait.
 
-### Step 4: Poll BigQuery for Logs (Batch Query)
+### Step 4: Poll otel_logs for Logs (Batch Query)
 
 **Polling parameters:**
 - Initial wait: 30 seconds (already done)
 - Poll interval: 30 seconds
 - Max attempts: 10 (covers ~5 minutes total)
 
-**ALWAYS print the query before executing:**
-```
-=== BIGQUERY QUERY (Poll Attempt 1) ===
-SELECT DISTINCT request_id
-FROM `qtco-messaging-channels.dev.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ("RQ123...", "RQ456...", "RQ789...")
-  AND PARTITIONDATE = CURRENT_DATE()
+Connection (endpoint, bearer token, per-env datasource UID) comes from the `grafana-clickhouse-access` skill. Datasource UIDs: stage `dffjhhyy1pukga`, prod `dffjhhyy5wetcf`. **dev (`effjhhw4uby80b`) has no ottm data — use stage/prod.** Use the test's start time (UTC) for `<test_start_utc>`.
+
+**ALWAYS print the SQL before executing:**
+```sql
+SELECT DISTINCT LogAttributes['request_id'] AS request_id
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND LogAttributes['request_id'] IN ('RQ123...','RQ456...','RQ789...')
+  AND TimestampTime >= toDateTime('<test_start_utc>')
+SETTINGS max_partitions_to_read=100
 ```
 
-**Batch query to check for logs:**
+**Batch query to check for logs (Grafana HTTP API):**
 ```bash
-CLOUDSDK_PYTHON_SITEPACKAGES=1 bq query --format=json --use_legacy_sql=false '
-SELECT DISTINCT request_id
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ("RQ123...", "RQ456...", "RQ789...")
-  AND PARTITIONDATE = CURRENT_DATE()
-'
+curl -s -X POST https://grafana.twilioinfra.com/api/ds/query \
+  -H "Authorization: Bearer <token from grafana-clickhouse-access skill>" \
+  -H "Content-Type: application/json" \
+  -d '{"queries":[{"refId":"A","datasource":{"uid":"<env UID>"},
+       "rawSql":"SELECT DISTINCT LogAttributes['\''request_id'\''] AS request_id FROM otel_logs WHERE ServiceName='\''messaging-ott-management-api'\'' AND LogAttributes['\''request_id'\''] IN ('\''RQ123...'\'') AND TimestampTime >= toDateTime('\''<test_start_utc>'\'') SETTINGS max_partitions_to_read=100",
+       "format":"table"}],"from":"now-1h","to":"now"}'
 ```
+Response is column-major: `results.A.frames[0].data.values[colIdx][rowIdx]`; column names in `...schema.fields[*].name`.
 
 **Polling logic:**
 ```
@@ -495,41 +499,36 @@ Loop (max 10 attempts):
 
 Once logs are found, query for errors.
 
-**ALWAYS print the error detection query:**
+**ALWAYS print the error detection SQL before executing:**
+```sql
+SELECT LogAttributes['request_id']          AS request_id,
+       Timestamp,
+       SeverityText,
+       Body                                  AS msg,
+       LogAttributes['error']                AS error,
+       LogAttributes['endpoint']             AS endpoint,
+       LogAttributes['sender_sid']           AS sender_sid,
+       LogAttributes['sender_id']            AS sender_id,
+       LogAttributes['channel']              AS channel,
+       LogAttributes['temporal_workflow_id'] AS temporal_workflow_id,
+       LogAttributes['sqs_msg_id']           AS sqs_msg_id
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND LogAttributes['request_id'] IN ('RQ123...','RQ456...','RQ789...')
+  AND (SeverityText = 'ERROR' OR LogAttributes['error'] != '')
+  AND ContainerName != 'istio-proxy'
+  AND TimestampTime >= toDateTime('<test_start_utc>')
+ORDER BY request_id, Timestamp ASC
+SETTINGS max_partitions_to_read=100
 ```
-=== BIGQUERY QUERY (Error Detection) ===
-SELECT request_id, timestamp, level, msg, error, endpoint, sender_sid, sender_id
-FROM `qtco-messaging-channels.dev.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ("RQ123...", "RQ456...", "RQ789...")
-  AND (error IS NOT NULL OR level = "error")
-  AND PARTITIONDATE = CURRENT_DATE()
-ORDER BY request_id, timestamp ASC
-```
+Execute it via the same Grafana `/api/ds/query` curl as Step 4 (swap in this `rawSql`).
 
-**Execute the query:**
-```bash
-CLOUDSDK_PYTHON_SITEPACKAGES=1 bq query --format=json --use_legacy_sql=false '
-SELECT
-  request_id,
-  timestamp,
-  level,
-  msg,
-  error,
-  endpoint,
-  sender_sid,
-  sender_id
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ("RQ123...", "RQ456...", "RQ789...")
-  AND (error IS NOT NULL OR level = "error")
-  AND PARTITIONDATE = CURRENT_DATE()
-ORDER BY request_id, timestamp ASC
-'
-```
-
-**Error classification:**
-- `error IS NOT NULL` - Application-level errors with error field populated
-- `level = "error"` - Log entries at error level
-- Check access logs for HTTP 4xx/5xx status codes
+**Error classification (grounded in real ottm otel_logs keys, verified prod 2026-08-28):**
+- `SeverityText = 'ERROR'` — log entries at error level.
+- `LogAttributes['error'] != ''` — application-level error payload (often a Meta/Graph API error JSON).
+- **Flow (Sync vs Async):** `temporal_workflow_id` present → Async (Temporal workflow, after the 202); `sqs_msg_id` present → Async (SQS, e.g. RCS); neither → Sync (during the HTTP request).
+- HTTP status codes live on the `access` stream (`Stream='access'`); app errors are on the app stream (`Stream=''`).
+- `msg` no longer exists as a field — the message text is in `Body`.
 
 **CRITICAL: Display ALL errors found**
 
@@ -748,47 +747,64 @@ Example:
 
 ## Query Templates
 
+All run against `otel_logs` via the Grafana `/api/ds/query` API (see `grafana-clickhouse-access` for connection + env UID). `{rq_ids}` = single-quoted, comma-separated RQ IDs; `{test_start_utc}` = test start time.
+
 ### Template 1: Check Logs Exist (Batch)
 ```sql
-SELECT DISTINCT request_id
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ({rq_ids})
-  AND PARTITIONDATE = CURRENT_DATE()
+SELECT DISTINCT LogAttributes['request_id'] AS request_id
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND LogAttributes['request_id'] IN ({rq_ids})
+  AND TimestampTime >= toDateTime('{test_start_utc}')
+SETTINGS max_partitions_to_read=100
 ```
 
 ### Template 2: Error Detection (Batch)
 ```sql
-SELECT
-  request_id, timestamp, level, msg, error, endpoint, sender_sid, sender_id
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ({rq_ids})
-  AND (error IS NOT NULL OR level = 'error')
-  AND PARTITIONDATE = CURRENT_DATE()
-ORDER BY request_id, timestamp ASC
+SELECT LogAttributes['request_id'] AS request_id, Timestamp, SeverityText,
+       Body AS msg, LogAttributes['error'] AS error, LogAttributes['endpoint'] AS endpoint,
+       LogAttributes['sender_sid'] AS sender_sid, LogAttributes['sender_id'] AS sender_id
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND LogAttributes['request_id'] IN ({rq_ids})
+  AND (SeverityText = 'ERROR' OR LogAttributes['error'] != '')
+  AND ContainerName != 'istio-proxy'
+  AND TimestampTime >= toDateTime('{test_start_utc}')
+ORDER BY request_id, Timestamp ASC
+SETTINGS max_partitions_to_read=100
 ```
 
 ### Template 3: Full Request Trace (Batch)
 ```sql
-SELECT
-  request_id, timestamp, level, msg, endpoint, workflow, channel, error
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_stdout`
-WHERE request_id IN ({rq_ids})
-  AND PARTITIONDATE = CURRENT_DATE()
-ORDER BY request_id, timestamp ASC
+SELECT LogAttributes['request_id'] AS request_id, Timestamp, SeverityText, Body AS msg,
+       LogAttributes['endpoint'] AS endpoint, LogAttributes['workflow'] AS workflow,
+       LogAttributes['channel'] AS channel, LogAttributes['error'] AS error,
+       LogAttributes['temporal_workflow_id'] AS temporal_workflow_id,
+       LogAttributes['sqs_msg_id'] AS sqs_msg_id
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND LogAttributes['request_id'] IN ({rq_ids})
+  AND ContainerName != 'istio-proxy'
+  AND TimestampTime >= toDateTime('{test_start_utc}')
+ORDER BY request_id, Timestamp ASC
+SETTINGS max_partitions_to_read=100
 ```
 
 ### Template 4: Access Logs (HTTP Metadata)
 ```sql
-SELECT
-  request_id, http_method, request, response_code, duration
-FROM `qtco-messaging-channels.{env}.app_messaging_ott_management_api_mgmt_access`
-WHERE request_id IN ({rq_ids})
-  AND PARTITIONDATE = CURRENT_DATE()
+SELECT LogAttributes['request_id'] AS request_id, LogAttributes['method'] AS http_method,
+       LogAttributes['path'] AS request, LogAttributes['response_code'] AS response_code,
+       LogAttributes['duration'] AS duration
+FROM otel_logs
+WHERE ServiceName = 'messaging-ott-management-api'
+  AND Stream = 'access'
+  AND LogAttributes['request_id'] IN ({rq_ids})
+  AND TimestampTime >= toDateTime('{test_start_utc}')
 ```
 
 ## Rate Limiting Considerations
 
-### BigQuery
+### otel_logs
 - Batch all RQ IDs in single query using `IN` clause
 - Max ~11 queries for entire workflow (vs 100+ without batching)
 - Early termination when all logs found
@@ -798,7 +814,7 @@ WHERE request_id IN ({rq_ids})
 - Sequential execution (not parallel)
 
 ### Efficiency
-- 10 tests + 10 polling attempts = max 11 BigQuery queries
+- 10 tests + 10 polling attempts = max 11 otel_logs queries
 - Single batch query checks all RQ IDs at once
 
 ## Example Session
@@ -833,7 +849,7 @@ RQ ID Collected: RQ001abc...
 All tests executed. Collected 1 RQ ID.
 Waiting 30 seconds for logs to propagate...
 
-Polling BigQuery... Found 1/1 logs
+Polling otel_logs... Found 1/1 logs
 
 Checking for errors...
 
