@@ -5,7 +5,9 @@ description: Automated end-to-end testing of Senders API with BigQuery log verif
 
 # Senders E2E Testing
 
-This skill automates end-to-end testing of the Senders API with integrated BigQuery log verification.
+> ⚠️ **PORT NEEDED — BigQuery is retired.** The log-verification / polling steps below use BigQuery (`bq query`), which no longer exists. They must be migrated to Grafana `otel_logs` (use the `grafana-clickhouse-access` skill) before this skill runs end-to-end. The API-driving steps still work.
+
+This skill automates end-to-end testing of the Senders API with integrated log verification.
 
 ## Overview
 
@@ -238,7 +240,7 @@ The following actions are **pre-approved** and do NOT require user confirmation:
 - **Writing to /tmp/**: ALL write operations to /tmp directory
 - **Executing curl requests**: No approval needed for API calls
 - **Displaying headers and responses**: No approval needed to show output
-- **Creating Jira tickets**: Using sender-management-jira-ticket-creator skill for bugs (ask for parent epic once)
+- **Creating Jira tickets**: Using universal-jira-ticket-creator skill (project_id="ottm") for bugs (ask for parent epic once)
 
 **NEVER ask for approval when:**
 - Reading files from `/tmp/` directory
@@ -583,21 +585,7 @@ Found {N} errors/warnings across request(s):
 
 ### Step 5.5: Bug Analysis
 
-After displaying all errors, use the `senders-bug-analyzer` skill to analyze them.
-
-**Invoke the bug analyzer skill:**
-Provide all error details from Step 5 to the bug analyzer.
-
-The bug analyzer will ask for repository location to perform code review.
-Provide the OTTM repository path: ~/Projects/messaging-ott-management-api/
-
-The bug analyzer will:
-- Analyze each error to determine if it's a bug or expected behavior
-- Perform code review for detected bugs
-- Search codebase for error origins
-- Identify root causes in code
-- Provide file:line references
-- Suggest potential fixes
+After displaying all errors, classify each as **bug vs expected** using the OTTM repo (`~/Projects/messaging-ott-management-api/`) and the expected-error patterns in `project-registry.yaml`. For detected bugs, do a code review: search the codebase for the error origin, identify the root cause with file:line references, and suggest a fix. See `sender-management-kb` → `conventions.md` for routing.
 
 **If bugs detected:** Proceed to Step 5.6 (Create Jira Tickets)
 **If no bugs:** Skip to Step 6
@@ -606,7 +594,7 @@ The bug analyzer will:
 
 When bugs are detected by the bug analyzer in Step 5.5, automatically create Jira tickets.
 
-**IMPORTANT: Use the `sender-management-jira-ticket-creator` skill**
+**IMPORTANT: Use the `universal-jira-ticket-creator` skill with project_id="ottm"**
 
 Use the bugs list from the bug analyzer output to create tickets.
 
@@ -940,5 +928,5 @@ Status: ⚠️ TESTS COMPLETED WITH ERRORS (background async errors after 202)"
 ## Related Skills
 
 - `twilio-phone-number-manager` - Search, purchase, and manage Twilio phone numbers
-- `ottm-bigquery-debugging` - Deep-dive into specific request logs
-- `senders-api-testing` - ⚠️ DEPRECATED - Use this skill instead
+- `grafana-clickhouse-access` - Query otel_logs (replaces the BigQuery log verification)
+- `sender-management-kb` - Routes SM work; conventions for bug-vs-expected classification

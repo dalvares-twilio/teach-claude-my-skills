@@ -5,7 +5,7 @@
 ## Decide which
 
 - **Full E2E** (create a sender end-to-end against a live env, exercise registration, etc.): `senders-e2e-testing`. Per [[feedback]] on that skill: use a **new phone number per session** and **show all errors in full detail**.
-- **API-level** checks of the Senders API: `senders-api-testing`.
+- **API-level** checks of the Senders API: also `senders-e2e-testing` (it absorbed the old API-testing skill).
 - **Phone number provisioning** for a test: `twilio-phone-number-manager`.
 
 ## Environments (from project-registry.yaml)

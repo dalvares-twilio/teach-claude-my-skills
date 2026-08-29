@@ -85,14 +85,14 @@ On the user's yes → build with `superpowers:writing-skills`, register in `skil
 |---|---|
 | "Add a new WhatsApp sender sub-resource" — recurs, spans ottm+storehouse+2 specs, ordered gotchas | ✅ **new skill** (or playbook first) |
 | "Onboard a new channel type to the Senders API" | ✅ **new skill** |
-| Repeated Meta-API error-class handling | 🔄 **update** existing `meta-error-mapping-scanner`, don't create |
+| "Which Meta API error codes are unhandled?" | 🔄 query `otel_logs` via `grafana-clickhouse-access` for Meta error codes, diff against ottm handlers. (The `*-error-mapping-scanner` / `*-bigquery-*` skills are **BigQuery-based → RETIRED**.) *Handling* a code = edit ottm error handlers |
 | "Run senders E2E for a sender" | 🔄 already `senders-e2e-testing` — route to it |
 | "prod DB is `twilio_messaging_channels`" | 📄 **fact** → `repos/storehouse.md`, not a skill |
 | "Fix a typo in one error string" | ❌ one-off — nothing to capture |
 
 ## Reuse before you build (Layer 2C)
 
-Check `skill-registry.md` FIRST — many tasks are already covered. E.g. **"test a sender" already has `senders-e2e-testing` / `senders-api-testing`** — route to those, don't rebuild. Also reuse: `project-registry.yaml` (ottm structured data), `service-dependency-mapper` (downstream deps), `open-api` (specs).
+Check `skill-registry.md` FIRST — many tasks are already covered. E.g. **"test a sender" already has `senders-e2e-testing`** — route to it, don't rebuild. Also reuse: `project-registry.yaml` (ottm structured data), `service-dependency-mapper` (downstream deps), `open-api` (specs).
 
 ## Freshness / how to regenerate a playbook
 

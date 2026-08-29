@@ -1,6 +1,6 @@
 # Project Registry - Universal Bug Detection for Twilio Projects
 # This file contains configuration for all Twilio projects that can be scanned for bugs.
-# Use the project-onboarding-wizard skill to add new projects interactively.
+# Add new projects by editing this file. Logs/analytics: Grafana otel_logs (BigQuery retired).
 
 version: "1.0"
 
@@ -14,34 +14,7 @@ projects:
     team: "Sender Management"
     repository: "~/Projects/messaging-ott-management-api"
 
-    # BigQuery Configuration
-    bigquery:
-      project: "qtco-messaging-channels"
-      datasets:
-        dev: "dev"
-        stage: "stage"
-        prod: "prod"
-      tables:
-        access_logs: "app_messaging_ott_management_api_mgmt_access"
-        app_logs: "app_messaging_ott_management_api_mgmt_stdout"
-      # Patterns to auto-detect this project from table name or user request
-      table_patterns:
-        - "messaging_ott_management"
-        - "ottm"
-        - "senders"
-        - "sender"
-      # Column mappings for BigQuery queries
-      columns:
-        timestamp: "timestamp"
-        error: "error"
-        level: "level"
-        request_id: "request_id"
-        account_id: "account_sid"
-        resource_id: "sender_sid"
-        partition: "PARTITIONDATE"
-        endpoint: "endpoint"
-        workflow: "workflow"
-        channel: "channel"
+    # Logs/analytics: Grafana otel_logs (BigQuery retired) — use the grafana-clickhouse-access skill.
 
     # Jira Configuration
     jira:
@@ -59,7 +32,7 @@ projects:
       auth_type: "basic"  # Uses TWILIO_ACCOUNT_SID:TWILIO_AUTH_TOKEN
       request_id_header: "X-Twilio-Request-Id"
 
-    # Custom Error Patterns (supplement universal patterns in bug-analyzer)
+    # Custom Error Patterns (reference: expected-vs-bug classification for Meta errors)
     error_patterns:
       # Errors that are EXPECTED behavior (not bugs)
       expected:
@@ -119,33 +92,7 @@ projects:
     team: "Sender Management"
     repository: "~/Projects/whatsapp-k8s-orch"
 
-    # BigQuery Configuration
-    bigquery:
-      project: "qtco-messaging-channels"
-      datasets:
-        dev: "dev"
-        stage: "stage"
-        prod: "prod"
-      tables:
-        access_logs: "app_messaging_whatsapp_k8s_orch_messaging_whatsapp_k8s_orch_access"
-        app_logs: "app_messaging_whatsapp_k8s_orch_messaging_whatsapp_k8s_orch_stdout"
-      # Patterns to auto-detect this project from table name or user request
-      table_patterns:
-        - "whatsapp_k8s_orch"
-        - "k8s-orch"
-        - "k8s_orch"
-      # Column mappings for BigQuery queries
-      columns:
-        timestamp: "timestamp"
-        error: "message"
-        exception: "exception"
-        exception_message: "exceptionMessage"
-        level: "level"
-        request_id: "correlationId"
-        resource_id: "sid"
-        partition: "PARTITIONDATE"
-        logger: "logger"
-        pod_name: "pod_name"
+    # Logs/analytics: Grafana otel_logs (BigQuery retired).
 
     # Jira Configuration
     jira:
@@ -153,15 +100,6 @@ projects:
       team_field: "Sender Management"
       issue_type: "Task"
       default_epic: null
-
-    # Custom Error Patterns
-    error_patterns:
-      expected: []
-      bugs: []
-
-    # Error Mapping Scanner Configuration
-    error_mapping:
-      enabled: false
 
   # ============================================================================
   # TEMPLATE - Copy this for new projects

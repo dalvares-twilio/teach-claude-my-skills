@@ -20,8 +20,7 @@ Catalog of skills that already exist and are relevant to Sender Management work.
 
 | Skill | Use when |
 |---|---|
-| `senders-e2e-testing` | Full E2E test of a sender (new phone number per session, show all errors in full) |
-| `senders-api-testing` | API-level testing of the Senders API |
+| `senders-e2e-testing` | E2E + API-level testing of a sender (new phone number per session, show all errors in full). ⚠ its log-verification is being ported from BigQuery to otel_logs |
 | `twilio-phone-number-manager` | Provisioning/managing phone numbers for tests |
 
 ## API design & specs
@@ -44,7 +43,7 @@ Catalog of skills that already exist and are relevant to Sender Management work.
 | `grafana-otel-dashboard-builder` | Build a troubleshooting/impact dashboard for a role |
 | `request-origin-tracer` | Trace where an RQ… request originated + call chain |
 | `service-dependency-mapper` | Map a service's downstream dependencies |
-| `auto-bug-detector` / `bug-analyzer` / `ottm-bigquery-debugging` | Scan ottm logs for bugs (registry-driven) |
+| _(the BigQuery bug-detection skills)_ | ⚠ **DELETED** (BigQuery retired). Use Grafana `otel_logs`: `grafana-clickhouse-access` (query logs), `grafana-otel-dashboard-builder` (dashboards), `oncall:investigate-issues` (guided). |
 | `oncall:investigate-issues` / `investigate-page` | On-call investigation |
 | `pagerduty-incident-resolver:incident-resolver` | Analyze a PagerDuty incident → code fix (MCP currently down — see session notes) |
 
@@ -56,7 +55,7 @@ Catalog of skills that already exist and are relevant to Sender Management work.
 
 ## Substrate (not skills, but reuse as data)
 
-- `~/.claude/project-registry.yaml` — ottm structured config (repo path, BigQuery, Jira, API URLs, error patterns)
+- `~/.claude/project-registry.yaml` — ottm structured config (repo path, Jira, API URLs, error patterns). ⚠ Its `bigquery:` block is STALE — **BigQuery is retired; logs/analytics are in Grafana `otel_logs` (ClickHouse)**.
 - `open-api` repo — OpenAPI specs
 - Obsidian vault `ottm-wiki/` + `01-Projects/` — existing human docs and prior designs
 

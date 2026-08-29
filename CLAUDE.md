@@ -17,7 +17,7 @@ When working on any task, the following actions are **pre-approved** and do NOT 
 - **Reading from /tmp/**: ALL read operations (cat, grep, awk, head, tail, etc.)
 - **Writing to /tmp/**: ALL write operations (echo, cat >, tee, etc.)
 - **Python scripts in /tmp/**: Creating and executing Python scripts for data processing
-- **BigQuery queries**: ALL bq query commands (especially for OTTM/Senders API work)
+- **Grafana `otel_logs` queries**: log/trace queries via the grafana-clickhouse-access skill (BigQuery retired)
 - **Sleep/wait commands**: Using sleep for any duration
 - **Executing curl requests**: API testing and debugging
 - **Displaying command output**: Showing headers, responses, logs, etc.
@@ -25,7 +25,7 @@ When working on any task, the following actions are **pre-approved** and do NOT 
 **IMPORTANT**: Never ask for approval when:
 - Reading or writing files in /tmp directory
 - Creating or executing Python scripts in /tmp for data processing
-- Running BigQuery queries for log analysis
+- Querying Grafana otel_logs for log analysis
 - Executing API requests with curl
 - Displaying output from commands
 
@@ -42,7 +42,7 @@ When running Senders API E2E tests:
 - Only reuse the same phone number when RETRYING a request as part of an existing test run
 - Do not track or save phone numbers to any file
 
-**Always display ALL errors found in BigQuery with complete details:**
+**Always display ALL errors found in the logs (Grafana otel_logs) with complete details:**
 - Display EVERY error row returned by error detection query
 - Include all severity levels: error, warning, info
 - Show full context for each error:
@@ -67,7 +67,7 @@ When running Senders API E2E tests:
 When running Senders API E2E tests:
 
 **Bug Detection:**
-- Use the `senders-bug-analyzer` skill to analyze errors
+- Classify errors as bug vs expected using the OTTM repo + `project-registry.yaml` patterns (see `sender-management-kb` → conventions)
 - The skill performs code review to identify root causes
 - Provide repository location when asked (default: ~/Projects/messaging-ott-management-api/)
 - Bug analyzer will search codebase and analyze relevant code
@@ -90,7 +90,7 @@ When running Senders API E2E tests:
 - Resource already exists
 
 **Jira Ticket Creation:**
-- Automatically create tickets for detected bugs using `sender-management-jira-ticket-creator` skill
+- Automatically create tickets for detected bugs using `universal-jira-ticket-creator` skill with project_id="ottm"
 - Ask user ONCE for parent epic at start: "What parent epic should these tickets be associated with? (Leave empty to create without parent)"
 - DO NOT use `-pr` or `--priority` flag (causes 400 errors)
 - DO NOT use `-a` or `--assignee` flag (leave tickets unassigned)

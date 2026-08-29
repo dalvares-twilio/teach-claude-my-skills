@@ -23,11 +23,20 @@ Every handler emits the full set: `RequestReceived`, deferred `RequestSyncTime` 
 
 OTK on AWS EKS via Buildkite → Helm chart (`chart/`) → ArgoCD apps (`argocd/app/{env}/us-east-1/*.yaml`) → paired `*-deploy` repo. Cluster targets in `.buildkite/deploy/cluster-config/`. A new *route* needs no manifest change; new secrets/config keys do (`chart/templates/ConfigMap.yaml`/`Secrets.yaml`). Use the `otk-service-connect` skill to reach a running role.
 
+## Logs & analytics — Grafana `otel_logs`, NOT BigQuery
+
+**BigQuery is retired.** All log querying, error analysis, and metrics for the fleet go through **Grafana / ClickHouse `otel_logs`**. Use:
+- `grafana-clickhouse-access` — query access/app logs + traces for any role.
+- `grafana-otel-dashboard-builder` — build troubleshooting/impact dashboards.
+- `oncall:investigate-issues` — guided investigation.
+
+Any skill or config that queries BigQuery (`*-bigquery-*`, `*-error-scanner`, `*-error-mapping-scanner`, the `bigquery:` block in `project-registry.yaml`) is **stale** — do not use it; port the intent to `otel_logs`.
+
 ## Tests
 
 - ottm: `make test` (unit), `make test-contract` (contract vs `openapi/`), `make whatsapp-cluster`/`make rcs-cluster` (e2e), `tests/integration/**`, `tests/load/k6`.
 - storehouse: `mvn test` (unit), `chart/tests/test.sh` (smoke), `load-test/` (JMeter).
-- Sender E2E against a live env → use `senders-e2e-testing` / `senders-api-testing` skills (see `skill-registry.md`), not a hand-rolled script.
+- Sender E2E against a live env → use the `senders-e2e-testing` skill (see `skill-registry.md`), not a hand-rolled script.
 
 ## Jira / tickets
 

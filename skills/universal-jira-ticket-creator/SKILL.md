@@ -13,7 +13,7 @@ Creates well-formatted Jira tickets for bugs detected in ANY Twilio project. Dyn
 
 - After bug detection in any Twilio project
 - When creating tickets and you know the project config
-- Called by auto-bug-detector with project context
+- Called by sender-management-kb during the tickets stage
 - Directly when you need to create tickets for a specific project
 
 ## Pre-Approved Actions
@@ -232,9 +232,9 @@ Input: Create ticket with:
 4. Remind about team field: "Flex TaskRouter"
 ```
 
-### Example 3: Called by auto-bug-detector
+### Example 3: Called by sender-management-kb (tickets stage)
 ```
-auto-bug-detector invokes with:
+sender-management-kb invokes with:
 {
   "project_id": "ottm",
   "bugs": [...],
@@ -258,36 +258,24 @@ auto-bug-detector invokes with:
 **If registry not found:**
 ```
 Project registry not found at ~/.claude/project-registry.yaml
-Please run project-onboarding-wizard to set up projects.
+Please add the project to project-registry.yaml.
 ```
 
 **If project not in registry:**
 ```
 Project "{project_id}" not found in registry.
 Available projects: ottm, taskrouter, verify
-Use project-onboarding-wizard to add new projects.
+Add new projects by editing project-registry.yaml.
 ```
 
-## Migration from sender-management-jira-ticket-creator
+## Usage
 
-This skill replaces `sender-management-jira-ticket-creator` with a universal version.
-
-**Old usage:**
-```
-Use sender-management-jira-ticket-creator skill
-→ Hardcoded to MSGADVCHNL project
-```
-
-**New usage:**
 ```
 Use universal-jira-ticket-creator skill with project_id="ottm"
-→ Loads config from registry
+→ Loads config from project-registry.yaml
 → Works for any configured project
 ```
 
 ## Related Skills
 
-- **auto-bug-detector**: Invokes this skill with project context
-- **project-onboarding-wizard**: Sets up new projects in registry
-- **bug-analyzer**: Provides bug details for tickets
-- **sender-management-jira-ticket-creator**: DEPRECATED - use this instead
+- **sender-management-kb**: routes Sender Management work and calls this skill for the tickets stage.
